@@ -16,6 +16,11 @@ Install from PyPi:
 pipx install target-mssql
 ```
 -->
+### Prerequisites
+You will need to install the SQL Server Native Driver or ODBC Driver for SQL Server
+
+[Installing Microsoft ODBC Driver for SQL Server](https://learn.microsoft.com/en-us/sql/connect/odbc/windows/system-requirements-installation-and-driver-files?view=sql-server-ver16#installing-microsoft-odbc-driver-for-sql-server)
+
 Install from GitHub:
 
 ```bash
