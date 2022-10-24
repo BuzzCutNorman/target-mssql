@@ -24,7 +24,7 @@ You will need to install the SQL Server Native Driver or ODBC Driver for SQL Ser
 Install from GitHub:
 
 ```bash
-pipx install git+https://github.com/ORG_NAME/target-mssql.git@main
+pipx install git+https://github.com/BuzzCutNorman/target-mssql.git
 ```
 
 Install using [Meltano](https://www.meltano.com) as a [Custom Plugin](https://docs.meltano.com/guide/plugin-management#custom-plugins)
