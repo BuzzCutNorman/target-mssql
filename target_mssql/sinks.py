@@ -3,9 +3,10 @@
 from __future__ import annotations
 from typing import Any, Dict, cast, Iterable, Optional
 
-from sqlalchemy import exc
-from sqlalchemy import Table, MetaData, insert
+from sqlalchemy import Table, MetaData, exc, types, insert
+from sqlalchemy.dialects import mssql
 from sqlalchemy.engine import URL
+
 
 
 from singer_sdk.sinks import SQLConnector, SQLSink
@@ -57,6 +58,24 @@ class mssqlConnector(SQLConnector):
         
         return (config_url)
 
+    @staticmethod
+    def to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
+        """Returns a JSON Schema equivalent for the given SQL type.
+        
+        Developers may optionally add custom logic before calling the default implementation
+        inherited from the base class.
+        """
+        # Optionally, add custom logic before calling the super().
+        # You may delete this method if overrides are not needed.
+        # import logging
+        # logger = logging.getLogger("sqlconnector")
+        # logger.info(jsonschema_type)
+        if 'boolean' in jsonschema_type.get('type'):
+            return cast(types.TypeEngine, mssql.VARCHAR())
+        # logger = logging.getLogger("sqlconnector")
+        # logger.info(jsonschema_type)
+
+        return SQLConnector.to_sql_type(jsonschema_type)
 
 class mssqlSink(SQLSink):
     """mssql target sink class."""
