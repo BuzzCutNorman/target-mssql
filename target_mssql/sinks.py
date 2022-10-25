@@ -136,13 +136,16 @@ class mssqlSink(SQLSink):
         )
 
         try:
-            with self.connector.connection.engine.begin() as conn:
+            with self.connector.connection.engine.connect() as conn:
                 if primary_key_present:
                     conn.execute(f"SET IDENTITY_INSERT { full_table_name } ON")
-                conn.execute(
-                    insert_sql,
-                    records,
-                )
+                
+                with conn.begin():
+                    conn.execute(
+                        insert_sql,
+                        records,
+                    )
+
                 if primary_key_present:
                     conn.execute(f"SET IDENTITY_INSERT { full_table_name } OFF")
         except exc.SQLAlchemyError as e:
