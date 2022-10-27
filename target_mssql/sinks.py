@@ -3,11 +3,9 @@
 from __future__ import annotations
 from typing import Any, Dict, cast, Iterable, Optional
 
-from sqlalchemy import Table, MetaData, exc, types, insert
+from sqlalchemy import Table, MetaData, exc, types, engine_from_config, insert
 from sqlalchemy.dialects import mssql
-from sqlalchemy.engine import URL
-
-
+from sqlalchemy.engine import URL, Engine
 
 from singer_sdk.sinks import SQLConnector, SQLSink
 
@@ -57,6 +55,24 @@ class mssqlConnector(SQLConnector):
             config_url = config_url.update_query_dict(config['sqlalchemy_url_query'])
         
         return (config_url)
+
+    def create_sqlalchemy_engine(self) -> Engine:
+        """Return a new SQLAlchemy engine using the provided config.
+
+        Developers can generally override just one of the following:
+        `sqlalchemy_engine`, sqlalchemy_url`.
+
+        Returns:
+            A newly created SQLAlchemy engine object.
+        """
+        eng_prefix = "ep."
+        eng_config = {f"{eng_prefix}url":self.sqlalchemy_url,f"{eng_prefix}echo":"False"}
+
+        if self.config.get('sqlalchemy_eng_params'):
+            for key, value in self.config['sqlalchemy_eng_params'].items():
+                eng_config.update({f"{eng_prefix}{key}": value})
+
+        return engine_from_config(eng_config, prefix=eng_prefix)
 
     @staticmethod
     def to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
