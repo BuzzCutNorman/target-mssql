@@ -1,6 +1,6 @@
 # target-mssql
 
-`target-mssql` is a Singer target for mssql. !!! Warning !!! really early version.  It works barely.
+`target-mssql` is a Singer target for mssql. !!! Warning !!! really early version.  It works ok 😐.  This target can accept Meltano Batch Messages.  Not doing naitve bcp loads yet.
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
 
@@ -52,6 +52,7 @@ target-mssql --about --format=markdown
 | user                | False    | None    | The User Account who has been granted access to the SQL Server |
 | password            | False    | None    | The Password for the User account |
 | database            | False    | None    | The Default database for this connection |
+| sqlalchemy_eng_params| False    | None    | SQLAlchemy Engine Paramaters: fast_executemany, future |
 | sqlalchemy_url_query| False    | None    | SQLAlchemy URL Query options: driver, TrustServerCertificate |
 | batch_config        | False    | None    | Optional Batch Message configuration |
 | start_date          | False    | None    | The earliest record date to sync |
