@@ -139,8 +139,12 @@ class mssqlSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         primary_key_present = False
+        #pftn -> Parsed Full Table Name [0] = db, [1] = schema, [2] = table
+        pftn:tuple = SQLConnector.parse_full_table_name(self, full_table_name=full_table_name)
+        table_name:str = pftn[2]
+
         meta = MetaData()
-        table = Table( full_table_name, meta, autoload=True, autoload_with=self.connector.connection.engine)
+        table = Table(table_name, meta, autoload=True, autoload_with=self.connector.connection.engine)
         primary_key_list = [pk_column.name for pk_column in table.primary_key.columns.values()]
         for primary_key in primary_key_list:
             if primary_key in records[0]:
