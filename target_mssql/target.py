@@ -51,6 +51,11 @@ class Targetmssql(SQLTarget):
             description="The Default database for this connection"
         ),
         th.Property(
+            "default_target_schema",
+            th.StringType,
+            description="The Default schema to place all streams"
+        ),
+        th.Property(
             "sqlalchemy_eng_params",
             th.ObjectType(
                 th.Property(
