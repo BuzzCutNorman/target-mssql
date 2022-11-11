@@ -6,8 +6,11 @@ from typing import Any, Dict, cast, Iterable, Optional
 from sqlalchemy import Table, MetaData, exc, types, engine_from_config, insert
 from sqlalchemy.dialects import mssql
 from sqlalchemy.engine import URL, Engine
+from sqlalchemy.sql.expression import Insert
 
-from singer_sdk.sinks import SQLConnector, SQLSink
+
+from singer_sdk.connectors import SQLConnector
+from singer_sdk.sinks import SQLSink
 
 
 class mssqlConnector(SQLConnector):
@@ -98,11 +101,30 @@ class mssqlSink(SQLSink):
 
     connector_class = mssqlConnector
 
+    @property
+    def schema_name(self) -> Optional[str]:
+        """Return the schema name or `None` if using names with no schema part.
+
+        Returns:
+            The target schema name.
+        """
+        stream_schema = super().schema_name
+
+        # MS SQL Server has a public database role so the name is reserved
+        # and it can not be created as a schema.  To avoid this common error
+        # we convert "public" to "dbo" if the target dialet is mssql
+        # if self.connector._dialect.name == "mssql" and stream_schema == "public":
+        if stream_schema == "public":
+            stream_schema = "dbo"
+        
+        return stream_schema
+
+
     def generate_insert_statement(
         self,
         full_table_name: str,
         schema: dict,
-    ) -> str:
+    ) -> Insert:
         """Generate an insert statement for the given records.
 
         Args:
@@ -139,20 +161,37 @@ class mssqlSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         primary_key_present = False
-        #pftn -> Parsed Full Table Name [0] = db, [1] = schema, [2] = table
-        pftn:tuple = SQLConnector.parse_full_table_name(self, full_table_name=full_table_name)
-        table_name:str = pftn[2]
+        # #pftn -> Parsed Full Table Name [0] = db, [1] = schema, [2] = table
+        # pftn:tuple = SQLConnector.parse_full_table_name(self, full_table_name=full_table_name)
+        # table_name:str = pftn[2]
+        _, schema_name, table_name = SQLConnector.parse_full_table_name(self, full_table_name=full_table_name)
+
+        conformed_records = (
+            [self.conform_record(record) for record in records]
+            if isinstance(records, list)
+            else (self.conform_record(record) for record in records)
+        )
 
         meta = MetaData()
-        table = Table(table_name, meta, autoload=True, autoload_with=self.connector.connection.engine)
+        # if self.schema_name:
+        #     table = Table(table_name, meta, autoload=True, autoload_with=self.connector.connection.engine, schema=self.schema_name)
+        # else:
+        #     table = Table(table_name, meta, autoload=True, autoload_with=self.connector.connection.engine)
+        table = Table(table_name, meta, autoload=True, autoload_with=self.connector.connection.engine, schema=schema_name)
         primary_key_list = [pk_column.name for pk_column in table.primary_key.columns.values()]
         for primary_key in primary_key_list:
-            if primary_key in records[0]:
+            if primary_key in conformed_records[0]:
                 primary_key_present = True
         
-        insert_sql = self.generate_insert_statement(
+        insert_sql: Insert = self.generate_insert_statement(
             full_table_name,
             schema,
+        )
+
+        conformed_records = (
+            [self.conform_record(record) for record in records]
+            if isinstance(records, list)
+            else (self.conform_record(record) for record in records)
         )
 
         try:
@@ -163,7 +202,7 @@ class mssqlSink(SQLSink):
                 with conn.begin():
                     conn.execute(
                         insert_sql,
-                        records,
+                        conformed_records,
                     )
 
                 if primary_key_present:
