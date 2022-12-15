@@ -93,6 +93,19 @@ class mssqlConnector(SQLConnector):
         # logger.info(jsonschema_type)
         if 'boolean' in jsonschema_type.get('type'):
             return cast(types.TypeEngine, mssql.VARCHAR(length=5))
+        
+        if 'integer' in jsonschema_type.get('type'):
+            minimum = jsonschema_type.get("minimum")
+            maximum = jsonschema_type.get("maximum")
+            if (minimum == -9223372036854775808) and (maximum == 9223372036854775807):
+                return cast(sqlalchemy.types.TypeEngine, mssql.BIGINT())
+            elif (minimum == -2147483648) and (maximum == 2147483647):
+                return cast(sqlalchemy.types.TypeEngine, mssql.INTEGER())
+            elif (minimum == -32768) and (maximum == 32767):
+                return cast(sqlalchemy.types.TypeEngine, mssql.SMALLINT())
+            elif (minimum == 0) and (maximum == 255):
+                return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())   
+
         # logger = logging.getLogger("sqlconnector")
         # logger.info(jsonschema_type)
 
