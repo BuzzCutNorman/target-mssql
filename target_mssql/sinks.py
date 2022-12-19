@@ -91,9 +91,14 @@ class mssqlConnector(SQLConnector):
         # import logging
         # logger = logging.getLogger("sqlconnector")
         # logger.info(jsonschema_type)
-        if 'boolean' in jsonschema_type.get('type'):
-            return cast(types.TypeEngine, mssql.VARCHAR(length=5))
         
+        # This is a MSSQL only DataType
+        # SQLA does the converion Python True, False
+        # to MS SQL Server BIT 0, 1
+        if 'boolean' in jsonschema_type.get('type'):
+            return cast(types.TypeEngine, mssql.BIT)
+        
+        # MS SQL Server Intergers and ANSI SQL Integers
         if 'integer' in jsonschema_type.get('type'):
             minimum = jsonschema_type.get("minimum")
             maximum = jsonschema_type.get("maximum")
@@ -104,6 +109,7 @@ class mssqlConnector(SQLConnector):
             elif (minimum == -32768) and (maximum == 32767):
                 return cast(sqlalchemy.types.TypeEngine, mssql.SMALLINT())
             elif (minimum == 0) and (maximum == 255):
+                # This is a MSSQL only DataType
                 return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())   
 
         # logger = logging.getLogger("sqlconnector")
