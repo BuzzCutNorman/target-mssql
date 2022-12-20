@@ -92,6 +92,14 @@ class mssqlConnector(SQLConnector):
         # logger = logging.getLogger("sqlconnector")
         # logger.info(jsonschema_type)
         
+        # Strings to NVARCHAR and add maxLength
+        if 'string' in jsonschema_type.get('type'):
+            length:int = jsonschema_type.get('maxLength')
+            if length:
+                return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR(length=length))
+            else:
+                return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR())
+        
         # This is a MSSQL only DataType
         # SQLA does the converion Python True, False
         # to MS SQL Server BIT 0, 1
@@ -100,8 +108,8 @@ class mssqlConnector(SQLConnector):
         
         # MS SQL Server Intergers and ANSI SQL Integers
         if 'integer' in jsonschema_type.get('type'):
-            minimum = jsonschema_type.get("minimum")
-            maximum = jsonschema_type.get("maximum")
+            minimum = jsonschema_type.get('minimum')
+            maximum = jsonschema_type.get('maximum')
             if (minimum == -9223372036854775808) and (maximum == 9223372036854775807):
                 return cast(sqlalchemy.types.TypeEngine, mssql.BIGINT())
             elif (minimum == -2147483648) and (maximum == 2147483647):
