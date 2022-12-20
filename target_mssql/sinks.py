@@ -118,8 +118,19 @@ class mssqlConnector(SQLConnector):
                 return cast(sqlalchemy.types.TypeEngine, mssql.SMALLINT())
             elif (minimum == 0) and (maximum == 255):
                 # This is a MSSQL only DataType
-                return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())   
+                return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())
 
+        # MS SQL Server monetary or currency values 
+        if 'number' in jsonschema_type.get('type'):  
+            minimum = jsonschema_type.get('minimum')
+            maximum = jsonschema_type.get('maximum')
+            if (minimum == -922337203685477.6) and (maximum == 922337203685477.6):
+            # There is something that is traucating and rounding this number
+            # if (minimum == -922337203685477.5808) and (maximum == 922337203685477.5807):
+                return cast(sqlalchemy.types.TypeEngine, mssql.MONEY())
+            elif (minimum == -214748.3648) and (maximum == 214748.3647):
+                return cast(sqlalchemy.types.TypeEngine, mssql.SMALLMONEY())
+                
         # logger = logging.getLogger("sqlconnector")
         # logger.info(jsonschema_type)
 
