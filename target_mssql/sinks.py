@@ -120,7 +120,7 @@ class mssqlConnector(SQLConnector):
                 # This is a MSSQL only DataType
                 return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())
 
-        # MS SQL Server monetary or currency values 
+        # MS SQL Server monetary, currency, float, and real values 
         if 'number' in jsonschema_type.get('type'):  
             minimum = jsonschema_type.get('minimum')
             maximum = jsonschema_type.get('maximum')
@@ -130,6 +130,10 @@ class mssqlConnector(SQLConnector):
                 return cast(sqlalchemy.types.TypeEngine, mssql.MONEY())
             elif (minimum == -214748.3648) and (maximum == 214748.3647):
                 return cast(sqlalchemy.types.TypeEngine, mssql.SMALLMONEY())
+            elif (minimum == -1.79e308) and (maximum == 1.79e308):
+                return cast(sqlalchemy.types.TypeEngine, mssql.FLOAT())
+            elif (minimum == -3.40e38) and (maximum == 3.40e38):
+                return cast(sqlalchemy.types.TypeEngine, mssql.REAL())            
                 
         # logger = logging.getLogger("sqlconnector")
         # logger.info(jsonschema_type)
