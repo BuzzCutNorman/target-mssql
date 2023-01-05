@@ -33,7 +33,7 @@ class mssqlConnector(SQLConnector):
         # If pyodbc given set pyodbc.pooling to False
         # This allows SQLA to manage to connection pool
         if config['driver_type'] == 'pyodbc':
-            pyodbc.pooling = False;
+            pyodbc.pooling = False
 
         super().__init__(config, sqlalchemy_url)
 
@@ -164,7 +164,7 @@ class mssqlConnector(SQLConnector):
             cursor = raw_conn.cursor()
             cursor.execute(sql_command)
             # fetch result parameters
-            #results = list(cursor.fetchall())
+            # results = list(cursor.fetchall())
             cursor.close()
             raw_conn.commit()
         finally:
