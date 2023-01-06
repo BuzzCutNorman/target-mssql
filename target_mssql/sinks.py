@@ -3,6 +3,8 @@
 from __future__ import annotations
 from typing import Any, Dict, cast, Iterable, Optional
 
+import pyodbc
+
 import sqlalchemy
 from sqlalchemy import DDL, Table, MetaData, exc, types, engine_from_config, insert
 from sqlalchemy.dialects import mssql
@@ -26,6 +28,14 @@ class mssqlConnector(SQLConnector):
     allow_column_alter: bool = False  # Whether altering column types is supported.
     allow_merge_upsert: bool = False  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
+
+    def __init__(self, config: dict | None = None, sqlalchemy_url: str | None = None) -> None:
+        # If pyodbc given set pyodbc.pooling to False
+        # This allows SQLA to manage to connection pool
+        if config['driver_type'] == 'pyodbc':
+            pyodbc.pooling = False
+
+        super().__init__(config, sqlalchemy_url)
 
     def get_sqlalchemy_url(cls, config: dict) -> str:
         """Generates a SQLAlchemy URL for mssql.
@@ -154,7 +164,7 @@ class mssqlConnector(SQLConnector):
             cursor = raw_conn.cursor()
             cursor.execute(sql_command)
             # fetch result parameters
-            #results = list(cursor.fetchall())
+            # results = list(cursor.fetchall())
             cursor.close()
             raw_conn.commit()
         finally:
