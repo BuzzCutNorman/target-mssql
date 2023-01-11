@@ -101,8 +101,50 @@ class mssqlConnector(SQLConnector):
         # import logging
         # logger = logging.getLogger("sqlconnector")
         # logger.info(jsonschema_type)
+        
+        # Strings to NVARCHAR and add maxLength
+        if 'string' in jsonschema_type.get('type'):
+            length:int = jsonschema_type.get('maxLength')
+            if length:
+                return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR(length=length))
+            else:
+                return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR())
+        
+        # This is a MSSQL only DataType
+        # SQLA does the converion Python True, False
+        # to MS SQL Server BIT 0, 1
         if 'boolean' in jsonschema_type.get('type'):
-            return cast(types.TypeEngine, mssql.VARCHAR(length=5))
+            return cast(types.TypeEngine, mssql.BIT)
+        
+        # MS SQL Server Intergers and ANSI SQL Integers
+        if 'integer' in jsonschema_type.get('type'):
+            minimum = jsonschema_type.get('minimum')
+            maximum = jsonschema_type.get('maximum')
+            if (minimum == -9223372036854775808) and (maximum == 9223372036854775807):
+                return cast(sqlalchemy.types.TypeEngine, mssql.BIGINT())
+            elif (minimum == -2147483648) and (maximum == 2147483647):
+                return cast(sqlalchemy.types.TypeEngine, mssql.INTEGER())
+            elif (minimum == -32768) and (maximum == 32767):
+                return cast(sqlalchemy.types.TypeEngine, mssql.SMALLINT())
+            elif (minimum == 0) and (maximum == 255):
+                # This is a MSSQL only DataType
+                return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())
+
+        # MS SQL Server monetary, currency, float, and real values 
+        if 'number' in jsonschema_type.get('type'):  
+            minimum = jsonschema_type.get('minimum')
+            maximum = jsonschema_type.get('maximum')
+            if (minimum == -922337203685477.6) and (maximum == 922337203685477.6):
+            # There is something that is traucating and rounding this number
+            # if (minimum == -922337203685477.5808) and (maximum == 922337203685477.5807):
+                return cast(sqlalchemy.types.TypeEngine, mssql.MONEY())
+            elif (minimum == -214748.3648) and (maximum == 214748.3647):
+                return cast(sqlalchemy.types.TypeEngine, mssql.SMALLMONEY())
+            elif (minimum == -1.79e308) and (maximum == 1.79e308):
+                return cast(sqlalchemy.types.TypeEngine, mssql.FLOAT())
+            elif (minimum == -3.40e38) and (maximum == 3.40e38):
+                return cast(sqlalchemy.types.TypeEngine, mssql.REAL())            
+                
         # logger = logging.getLogger("sqlconnector")
         # logger.info(jsonschema_type)
 
