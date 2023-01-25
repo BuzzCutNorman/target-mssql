@@ -79,8 +79,38 @@ class mssqlConnector(SQLConnector):
 
         return engine_from_config(eng_config, prefix=eng_prefix)
 
+    def to_sql_type(self, jsonschema_type: dict) -> None:
+        """Returns a JSON Schema equivalent for the given SQL type.
+
+        Developers may optionally add custom logic before calling the default
+        implementation inherited from the base class.
+        """
+        if self.config.get('detailed_jsonschema_types',False):
+            return self.exp_to_sql_type(jsonschema_type)
+        else: 
+            return self.org_to_sql_type(jsonschema_type)
+
     @staticmethod
-    def to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
+    def org_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
+        """Returns a JSON Schema equivalent for the given SQL type.
+        
+        Developers may optionally add custom logic before calling the default implementation
+        inherited from the base class.
+        """
+        # Optionally, add custom logic before calling the super().
+        # You may delete this method if overrides are not needed.
+        # import logging
+        # logger = logging.getLogger("sqlconnector")
+        # logger.info(jsonschema_type)
+        if 'boolean' in jsonschema_type.get('type'):
+            return cast(types.TypeEngine, mssql.VARCHAR(length=5))
+        # logger = logging.getLogger("sqlconnector")
+        # logger.info(jsonschema_type)
+        
+        return SQLConnector.to_sql_type(jsonschema_type)
+        
+    @staticmethod
+    def exp_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
         """Returns a JSON Schema equivalent for the given SQL type.
         
         Developers may optionally add custom logic before calling the default implementation

@@ -130,6 +130,12 @@ class Targetmssql(SQLTarget):
             th.DateTimeType,
             description="The earliest record date to sync"
         ),
+        th.Property(
+            "detailed_jsonschema_types",
+            th.BooleanType,
+            default=False,
+            description="Turn on translation of detail JSON Schema types to SQL Types"
+        ),
     ).to_dict()
 
     default_sink_class = mssqlSink
