@@ -131,10 +131,10 @@ class Targetmssql(SQLTarget):
             description="The earliest record date to sync"
         ),
         th.Property(
-            "detailed_jsonschema_types",
+            "hd_jsonschema_types",
             th.BooleanType,
             default=False,
-            description="Turn on translation of detail JSON Schema types to SQL Types"
+            description="Turn on translation of Higher Defined(HD) JSON Schema types to SQL Types"
         ),
     ).to_dict()
 
