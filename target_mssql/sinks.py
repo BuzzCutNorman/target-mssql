@@ -276,24 +276,24 @@ class mssqlSink(SQLSink):
         return(name)
         #return super().conform_name(name)
 
-    def generate_insert_statement(
-        self,
-        full_table_name: str,
-        schema: dict,
-    ) -> Insert:
-        """Generate an insert statement for the given records.
+    # def generate_insert_statement(
+    #     self,
+    #     full_table_name: str,
+    #     schema: dict,
+    # ) -> Insert:
+    #     """Generate an insert statement for the given records.
 
-        Args:
-            full_table_name: the target table name.
-            schema: the JSON schema for the new table.
+    #     Args:
+    #         full_table_name: the target table name.
+    #         schema: the JSON schema for the new table.
 
-        Returns:
-            An insert statement.
-        """
+    #     Returns:
+    #         An insert statement.
+    #     """
         
-        statement = insert(self.connector.get_table(full_table_name))
+    #     statement = insert(self.connector.get_table(full_table_name))
 
-        return statement
+    #     return statement
     
     def bulk_insert_records(
         self,
@@ -316,17 +316,17 @@ class mssqlSink(SQLSink):
         Returns:
             True if table exists, False if not, None if unsure or undetectable.
         """
-        primary_key_present = False
+        # primary_key_present = False
         # #pftn -> Parsed Full Table Name [0] = db, [1] = schema, [2] = table
         # pftn:tuple = SQLConnector.parse_full_table_name(self, full_table_name=full_table_name)
         # table_name:str = pftn[2]
         _, schema_name, table_name = SQLConnector.parse_full_table_name(self, full_table_name=full_table_name)
 
-        conformed_records = (
-            [self.conform_record(record) for record in records]
-            if isinstance(records, list)
-            else (self.conform_record(record) for record in records)
-        )
+        # conformed_records = (
+        #     [self.conform_record(record) for record in records]
+        #     if isinstance(records, list)
+        #     else (self.conform_record(record) for record in records)
+        # )
 
         meta = MetaData()
         # if self.schema_name:
@@ -334,15 +334,15 @@ class mssqlSink(SQLSink):
         # else:
         #     table = Table(table_name, meta, autoload=True, autoload_with=self.connector.connection.engine)
         table = Table(table_name, meta, autoload=True, autoload_with=self.connector.connection.engine, schema=schema_name)
-        primary_key_list = [pk_column.name for pk_column in table.primary_key.columns.values()]
-        for primary_key in primary_key_list:
-            if primary_key in conformed_records[0]:
-                primary_key_present = True
+        # primary_key_list = [pk_column.name for pk_column in table.primary_key.columns.values()]
+        # for primary_key in primary_key_list:
+        #     if primary_key in conformed_records[0]:
+        #         primary_key_present = True
         
-        insert_sql: Insert = self.generate_insert_statement(
-            full_table_name,
-            schema,
-        )
+        # insert_sql: Insert = self.generate_insert_statement(
+        #     full_table_name,
+        #     schema,
+        # )
 
         conformed_records = (
             [self.conform_record(record) for record in records]
@@ -352,17 +352,17 @@ class mssqlSink(SQLSink):
 
         try:
             with self.connector.connection.engine.connect() as conn:
-                if primary_key_present:
-                    conn.execute(f"SET IDENTITY_INSERT { full_table_name } ON")
+                # if primary_key_present:
+                #     conn.execute(f"SET IDENTITY_INSERT { full_table_name } ON")
                 
                 with conn.begin():
                     conn.execute(
-                        insert_sql,
+                        table.insert(),
                         conformed_records,
                     )
 
-                if primary_key_present:
-                    conn.execute(f"SET IDENTITY_INSERT { full_table_name } OFF")
+                # if primary_key_present:
+                #     conn.execute(f"SET IDENTITY_INSERT { full_table_name } OFF")
         except exc.SQLAlchemyError as e:
             error = str(e.__dict__['orig'])
             self.logger.info(error)
