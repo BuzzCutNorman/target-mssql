@@ -128,8 +128,8 @@ class mssqlConnector(SQLConnector):
         """
         # Optionally, add custom logic before calling the super().
         # You may delete this method if overrides are not needed.
-        # import logging
-        # logger = logging.getLogger("sqlconnector")
+        import logging
+        logger = logging.getLogger("target-mssql")
         # logger.info(jsonschema_type)
         
         # Strings to NVARCHAR and add maxLength
@@ -161,6 +161,9 @@ class mssqlConnector(SQLConnector):
             elif (minimum == 0) and (maximum == 255):
                 # This is a MSSQL only DataType
                 return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())
+            else:
+                precision = len(str(maximum))
+                return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=0))
 
         # MS SQL Server monetary, currency, float, and real values 
         if 'number' in jsonschema_type.get('type'):  
@@ -175,7 +178,11 @@ class mssqlConnector(SQLConnector):
             elif (minimum == -1.79e308) and (maximum == 1.79e308):
                 return cast(sqlalchemy.types.TypeEngine, mssql.FLOAT())
             elif (minimum == -3.40e38) and (maximum == 3.40e38):
-                return cast(sqlalchemy.types.TypeEngine, mssql.REAL())            
+                return cast(sqlalchemy.types.TypeEngine, mssql.REAL())
+            else:
+                precision = len(str(maximum)) - 1
+                scale = precision - str(maximum).rfind('.')
+                return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))            
                 
         # logger = logging.getLogger("sqlconnector")
         # logger.info(jsonschema_type)
