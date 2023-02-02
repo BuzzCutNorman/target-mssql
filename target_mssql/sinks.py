@@ -162,7 +162,7 @@ class mssqlConnector(SQLConnector):
                 # This is a MSSQL only DataType
                 return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())
             else:
-                precision = len(str(maximum))
+                precision = str(maximum).count('9')
                 return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=0))
 
         # MS SQL Server monetary, currency, float, and real values 
@@ -180,7 +180,7 @@ class mssqlConnector(SQLConnector):
             elif (minimum == -3.40e38) and (maximum == 3.40e38):
                 return cast(sqlalchemy.types.TypeEngine, mssql.REAL())
             else:
-                precision = len(str(maximum)) - 1
+                precision = str(maximum).count('9')
                 scale = precision - str(maximum).rfind('.')
                 return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))            
                 
