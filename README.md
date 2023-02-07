@@ -3,7 +3,8 @@
 `target-mssql` is a Singer target for mssql. !!! Warning !!! really early version.  It works ok 😐.  This target can accept Meltano Batch Messages.  Not doing naitve bcp loads yet.
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
-
+### Whats New 🛳️🎉
+- 2023-02-08 Higher Defined(HD) JSON Schema types:  Translates the Higher Defined(HD) JSON Schema types from `tap-mssql` back into MS SQL data types.  You can give it a try by setting `hd_jsonschema_types` to `True` in your config.json or meltano.yml
 <!--
 
 Developer TODO: Update the below as needed to correctly describe the install procedure. For instance, if you do not have a PyPi repo, or if you want users to directly install from your git repo, you can modify this step as appropriate.
@@ -56,6 +57,7 @@ target-mssql --about --format=markdown
 | sqlalchemy_url_query| False    | None    | SQLAlchemy URL Query options: driver, TrustServerCertificate |
 | batch_config        | False    | None    | Optional Batch Message configuration |
 | start_date          | False    | None    | The earliest record date to sync |
+| hd_jsonschema_types  | False   |       0 | Turn on translation of Higher Defined(HD) JSON Schema types to SQL Types |
 | stream_maps         | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
 | stream_map_config   | False    | None    | User-defined config values to be used within map expressions. |
 | flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
