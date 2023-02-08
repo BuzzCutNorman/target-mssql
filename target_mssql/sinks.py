@@ -11,8 +11,6 @@ from sqlalchemy.dialects import mssql
 from sqlalchemy.engine import URL, Engine
 from sqlalchemy.sql.expression import Insert
 
-
-#from singer_sdk.connectors import SQLConnector
 from singer_sdk.connectors import SQLConnector
 from singer_sdk.sinks import SQLSink
 
@@ -89,22 +87,88 @@ class mssqlConnector(SQLConnector):
 
         return engine_from_config(eng_config, prefix=eng_prefix)
 
+    def to_sql_type(self, jsonschema_type: dict) -> None:
+        """Returns a JSON Schema equivalent for the given SQL type.
+
+        Developers may optionally add custom logic before calling the default
+        implementation inherited from the base class.
+        """
+        if self.config.get('hd_jsonschema_types',False):
+            return self.hd_to_sql_type(jsonschema_type)
+        else: 
+            return self.org_to_sql_type(jsonschema_type)
+
     @staticmethod
-    def to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
+    def org_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
         """Returns a JSON Schema equivalent for the given SQL type.
         
         Developers may optionally add custom logic before calling the default implementation
         inherited from the base class.
         """
-        # Optionally, add custom logic before calling the super().
-        # You may delete this method if overrides are not needed.
-        # import logging
-        # logger = logging.getLogger("sqlconnector")
-        # logger.info(jsonschema_type)
+
         if 'boolean' in jsonschema_type.get('type'):
             return cast(types.TypeEngine, mssql.VARCHAR(length=5))
-        # logger = logging.getLogger("sqlconnector")
-        # logger.info(jsonschema_type)
+        
+        return SQLConnector.to_sql_type(jsonschema_type)
+        
+    @staticmethod
+    def hd_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
+        """Returns a JSON Schema equivalent for the given SQL type.
+        
+        Developers may optionally add custom logic before calling the default implementation
+        inherited from the base class.
+        """
+        # Strings to NVARCHAR and add maxLength
+        if 'string' in jsonschema_type.get('type'):
+            if jsonschema_type.get("format") in {"date-time","time","date"}:
+                return SQLConnector.to_sql_type(jsonschema_type)
+            length:int = jsonschema_type.get('maxLength')
+            if length:
+                return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR(length=length))
+            else:
+                return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR())
+        
+        # This is a MSSQL only DataType
+        # SQLA does the converion Python True, False
+        # to MS SQL Server BIT 0, 1
+        if 'boolean' in jsonschema_type.get('type'):
+            return cast(types.TypeEngine, mssql.BIT)
+        
+        # MS SQL Server Intergers and ANSI SQL Integers
+        if 'integer' in jsonschema_type.get('type'):
+            minimum = jsonschema_type.get('minimum')
+            maximum = jsonschema_type.get('maximum')
+            if (minimum == -9223372036854775808) and (maximum == 9223372036854775807):
+                return cast(sqlalchemy.types.TypeEngine, mssql.BIGINT())
+            elif (minimum == -2147483648) and (maximum == 2147483647):
+                return cast(sqlalchemy.types.TypeEngine, mssql.INTEGER())
+            elif (minimum == -32768) and (maximum == 32767):
+                return cast(sqlalchemy.types.TypeEngine, mssql.SMALLINT())
+            elif (minimum == 0) and (maximum == 255):
+                # This is a MSSQL only DataType
+                return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())
+            else:
+                precision = str(maximum).count('9')
+                return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=0))
+
+        # MS SQL Server monetary, currency, float, and real values 
+        if 'number' in jsonschema_type.get('type'):  
+            minimum = jsonschema_type.get('minimum')
+            maximum = jsonschema_type.get('maximum')
+            if (minimum == -922337203685477.6) and (maximum == 922337203685477.6):
+            # There is something that is traucating and rounding this number
+            # if (minimum == -922337203685477.5808) and (maximum == 922337203685477.5807):
+                return cast(sqlalchemy.types.TypeEngine, mssql.MONEY())
+            elif (minimum == -214748.3648) and (maximum == 214748.3647):
+                return cast(sqlalchemy.types.TypeEngine, mssql.SMALLMONEY())
+            elif (minimum == -1.79e308) and (maximum == 1.79e308):
+                return cast(sqlalchemy.types.TypeEngine, mssql.FLOAT())
+            elif (minimum == -3.40e38) and (maximum == 3.40e38):
+                return cast(sqlalchemy.types.TypeEngine, mssql.REAL())
+            else:
+                precision = str(maximum).count('9')
+                scale = precision - str(maximum).rfind('.')
+                return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))            
 
         return SQLConnector.to_sql_type(jsonschema_type)
     
