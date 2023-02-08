@@ -4,7 +4,7 @@
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
 ### Whats New 🛳️🎉
-**2023-02-08 Higher Defined(HD) JSON Schema types:**  Translates the Higher Defined(HD) JSON Schema types from `tap-mssql` back into MS SQL data types.  You can give it a try by setting `hd_jsonschema_types` to `True` in your config.json or meltano.yml
+**2023-02-08 Higher Defined(HD) JSON Schema types:**  Translates the Higher Defined(HD) JSON Schema types from the buzzcutnorman `tap-mssql` back into MS SQL data types.  You can give it a try by setting `hd_jsonschema_types` to `True` in your config.json or meltano.yml
 <!--
 
 Developer TODO: Update the below as needed to correctly describe the install procedure. For instance, if you do not have a PyPi repo, or if you want users to directly install from your git repo, you can modify this step as appropriate.
