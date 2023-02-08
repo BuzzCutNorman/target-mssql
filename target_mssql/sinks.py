@@ -11,8 +11,6 @@ from sqlalchemy.dialects import mssql
 from sqlalchemy.engine import URL, Engine
 from sqlalchemy.sql.expression import Insert
 
-
-#from singer_sdk.connectors import SQLConnector
 from singer_sdk.connectors import SQLConnector
 from singer_sdk.sinks import SQLSink
 
@@ -107,15 +105,9 @@ class mssqlConnector(SQLConnector):
         Developers may optionally add custom logic before calling the default implementation
         inherited from the base class.
         """
-        # Optionally, add custom logic before calling the super().
-        # You may delete this method if overrides are not needed.
-        # import logging
-        # logger = logging.getLogger("sqlconnector")
-        # logger.info(jsonschema_type)
+
         if 'boolean' in jsonschema_type.get('type'):
             return cast(types.TypeEngine, mssql.VARCHAR(length=5))
-        # logger = logging.getLogger("sqlconnector")
-        # logger.info(jsonschema_type)
         
         return SQLConnector.to_sql_type(jsonschema_type)
         
@@ -126,12 +118,6 @@ class mssqlConnector(SQLConnector):
         Developers may optionally add custom logic before calling the default implementation
         inherited from the base class.
         """
-        # Optionally, add custom logic before calling the super().
-        # You may delete this method if overrides are not needed.
-        import logging
-        logger = logging.getLogger("target-mssql")
-        # logger.info(jsonschema_type)
-        
         # Strings to NVARCHAR and add maxLength
         if 'string' in jsonschema_type.get('type'):
             if jsonschema_type.get("format") in {"date-time","time","date"}:
@@ -183,9 +169,6 @@ class mssqlConnector(SQLConnector):
                 precision = str(maximum).count('9')
                 scale = precision - str(maximum).rfind('.')
                 return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))            
-                
-        # logger = logging.getLogger("sqlconnector")
-        # logger.info(jsonschema_type)
 
         return SQLConnector.to_sql_type(jsonschema_type)
     
