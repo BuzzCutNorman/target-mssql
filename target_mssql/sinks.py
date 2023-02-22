@@ -141,8 +141,8 @@ class mssqlConnector(SQLConnector):
         
         # MS SQL Server Intergers and ANSI SQL Integers
         if 'integer' in jsonschema_type.get('type'):
-            minimum = jsonschema_type.get('minimum')
-            maximum = jsonschema_type.get('maximum')
+            minimum: float = jsonschema_type.get('minimum')
+            maximum: float = jsonschema_type.get('maximum')
             if (minimum == -9223372036854775808) and (maximum == 9223372036854775807):
                 return cast(sqlalchemy.types.TypeEngine, mssql.BIGINT())
             elif (minimum == -2147483648) and (maximum == 2147483647):
@@ -171,9 +171,17 @@ class mssqlConnector(SQLConnector):
             elif (minimum == -3.40e38) and (maximum == 3.40e38):
                 return cast(sqlalchemy.types.TypeEngine, mssql.REAL())
             else:
-                precision = str(maximum).count('9')
-                scale = precision - str(maximum).rfind('.')
-                return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))            
+                if 'e+' not in str(maximum):
+                    precision = str(maximum).count('9')
+                    scale = precision - str(maximum).rfind('.')
+                    return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))
+                else:
+                    precision_start = str(maximum).rfind('+')
+                    precision = int(str(maximum)[precision_start:])
+                    scale_start = str(maximum).find('.') + 1
+                    scale_end = str(maximum).find('e')
+                    scale = scale_end - scale_start
+                    return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))           
 
         return SQLConnector.to_sql_type(jsonschema_type)
     
