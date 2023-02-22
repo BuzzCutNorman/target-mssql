@@ -171,6 +171,10 @@ class mssqlConnector(SQLConnector):
             elif (minimum == -3.40e38) and (maximum == 3.40e38):
                 return cast(sqlalchemy.types.TypeEngine, mssql.REAL())
             else:
+                # Python will start using scientific notition for float values.
+                # A check for 'e+' in the string of the value is what I key off.
+                # If it is no present we can count the number of '9' in the string.
+                # If it is present we need to do a little more parsing to translate.
                 if 'e+' not in str(maximum):
                     precision = str(maximum).count('9')
                     scale = precision - str(maximum).rfind('.')
