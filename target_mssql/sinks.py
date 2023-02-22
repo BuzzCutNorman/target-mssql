@@ -127,6 +127,8 @@ class mssqlConnector(SQLConnector):
                 return cast(sqlalchemy.types.TypeEngine, mssql.TIME())
             if jsonschema_type.get("format") == "date-time":
                 return cast(sqlalchemy.types.TypeEngine, mssql.DATETIME())
+            if jsonschema_type.get("format") == "uuid":
+                return cast(sqlalchemy.types.TypeEngine, mssql.UNIQUEIDENTIFIER())
             length:int = jsonschema_type.get('maxLength')
             if length:
                 return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR(length=length))
