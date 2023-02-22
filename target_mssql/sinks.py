@@ -118,10 +118,15 @@ class mssqlConnector(SQLConnector):
         Developers may optionally add custom logic before calling the default implementation
         inherited from the base class.
         """
+        # Send date, time, and date-time to specific MSSQL type 
         # Strings to NVARCHAR and add maxLength
         if 'string' in jsonschema_type.get('type'):
-            if jsonschema_type.get("format") in {"date-time","time","date"}:
-                return SQLConnector.to_sql_type(jsonschema_type)
+            if jsonschema_type.get("format") == "date":
+                return cast(sqlalchemy.types.TypeEngine, mssql.DATE())
+            if jsonschema_type.get("format") == "time":
+                return cast(sqlalchemy.types.TypeEngine, mssql.TIME())
+            if jsonschema_type.get("format") == "date-time":
+                return cast(sqlalchemy.types.TypeEngine, mssql.DATETIME())
             length:int = jsonschema_type.get('maxLength')
             if length:
                 return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR(length=length))
