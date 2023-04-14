@@ -6,10 +6,9 @@ from typing import Any, Dict, cast, Iterable, Optional
 import pyodbc
 
 import sqlalchemy
-from sqlalchemy import DDL, Table, MetaData, exc, types, engine_from_config, insert
+from sqlalchemy import DDL, Table, MetaData, exc, types, engine_from_config
 from sqlalchemy.dialects import mssql
 from sqlalchemy.engine import URL, Engine
-from sqlalchemy.sql.expression import Insert
 
 from singer_sdk.connectors import SQLConnector
 from singer_sdk.sinks import SQLSink
@@ -27,7 +26,11 @@ class mssqlConnector(SQLConnector):
     allow_merge_upsert: bool = False  # Whether MERGE UPSERT is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
-    def __init__(self, config: dict | None = None, sqlalchemy_url: str | None = None) -> None:
+    def __init__(
+            self,
+            config: dict | None = None,
+            sqlalchemy_url: str | None = None
+    ) -> None:
         # If pyodbc given set pyodbc.pooling to False
         # This allows SQLA to manage to connection pool
         if config['driver_type'] == 'pyodbc':
@@ -247,11 +250,18 @@ class mssqlConnector(SQLConnector):
             raise NotImplementedError("Adding columns is not supported.")
 
         column_add_ddl = self.get_column_add_ddl(
-            table_name=full_table_name, column_name=column_name, column_type=sql_type
+            table_name=full_table_name,
+            column_name=column_name,
+            column_type=sql_type
         )
         self.raw_conn_execute(str(column_add_ddl))
 
-    def rename_column(self, full_table_name: str, old_name: str, new_name: str) -> None:
+    def rename_column(
+            self,
+            full_table_name: str,
+            old_name: str,
+            new_name: str
+    ) -> None:
         """Rename the provided columns.
 
         Args:
@@ -295,7 +305,8 @@ class mssqlConnector(SQLConnector):
     ) -> DDL:
         """Get the create column DDL statement.
 
-        Override this if your database uses a different syntax for renaming columns.
+        Override this if your database uses
+        a different syntax for renaming columns.
 
         Args:
             table_name: Fully qualified table name of column to alter.
