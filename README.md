@@ -4,8 +4,7 @@
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
 ### Whats New 🛳️🎉
-**2023-02-13 Upgraded to Meltano Singer-SDK 0.19.0:** Nothing more need to be said check out what awsome features were gained in these release notes. [0.18.0](https://github.com/meltano/sdk/releases/tag/v0.18.0) and [0.19.0](https://github.com/meltano/sdk/releases/tag/v0.19.0)
-
+**2023-04-14 Upgraded to Meltano Singer-SDK 0.24.0**
 
 **2023-02-08 Higher Defined(HD) JSON Schema types:**  Translates the Higher Defined(HD) JSON Schema types from the buzzcutnorman `tap-mssql` back into MS SQL data types.  You can give it a try by setting `hd_jsonschema_types` to `True` in your config.json or meltano.yml
 <!--
