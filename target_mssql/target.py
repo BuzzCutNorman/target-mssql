@@ -14,6 +14,8 @@ class Targetmssql(SQLTarget):
     """Sample target for mssql."""
 
     name = "target-mssql"
+    default_sink_class = mssqlSink
+
     config_jsonschema = th.PropertiesList(
         th.Property(
             "dialect",
@@ -59,14 +61,14 @@ class Targetmssql(SQLTarget):
             "sqlalchemy_eng_params",
             th.ObjectType(
                 th.Property(
-                "fast_executemany",
-                th.StringType,
-                description="Fast Executemany Mode: True, False"
+                    "fast_executemany",
+                    th.StringType,
+                    description="Fast Executemany Mode: True, False"
                 ),
                 th.Property(
-                "future",
-                th.StringType,
-                description="Run the engine in 2.0 mode: True, False"
+                    "future",
+                    th.StringType,
+                    description="Run the engine in 2.0 mode: True, False"
                 )
             ),
             description="SQLAlchemy Engine Paramaters: fast_executemany, future"
@@ -75,17 +77,17 @@ class Targetmssql(SQLTarget):
             "sqlalchemy_url_query",
             th.ObjectType(
                 th.Property(
-                "driver",
-                th.StringType,
-                description="The Driver to use when connection should match the Driver Type"
+                    "driver",
+                    th.StringType,
+                    description="The Driver to use when connection should match the Driver Type"
                 ),
                 th.Property(
-                "TrustServerCertificate",
-                th.StringType,
-                description="This is a Yes No option"
+                    "TrustServerCertificate",
+                    th.StringType,
+                    description="This is a Yes No option"
                 )
             ),
-            description="SQLAlchemy URL Query options: driver, TrustServerCertificate"    
+            description="SQLAlchemy URL Query options: driver, TrustServerCertificate"
         ),
         th.Property(
             "batch_config",
@@ -137,8 +139,6 @@ class Targetmssql(SQLTarget):
             description="Turn on translation of Higher Defined(HD) JSON Schema types to SQL Types"
         ),
     ).to_dict()
-
-    default_sink_class = mssqlSink
 
 
 if __name__ == "__main__":
