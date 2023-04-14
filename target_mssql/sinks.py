@@ -40,9 +40,12 @@ class mssqlConnector(SQLConnector):
 
         Args:
             config: The configuration for the connector.
+
+        Returns:
+            The URL as a string.
         """
         if config['dialect'] == "mssql":
-            url_drivername:str = config['dialect']
+            url_drivername: str = config['dialect']
         else:
             cls.logger.error("Invalid dialect given")
             exit(1)
@@ -57,16 +60,16 @@ class mssqlConnector(SQLConnector):
             url_drivername,
             config['user'],
             config['password'],
-            host = config['host'],
-            database = config['database']
+            host=config['host'],
+            database=config['database']
         )
 
         if 'port' in config:
             config_url = config_url.set(port=config['port'])
-        
+
         if 'sqlalchemy_url_query' in config:
             config_url = config_url.update_query_dict(config['sqlalchemy_url_query'])
-        
+
         return (config_url)
 
     def create_sqlalchemy_engine(self) -> Engine:
@@ -79,7 +82,10 @@ class mssqlConnector(SQLConnector):
             A newly created SQLAlchemy engine object.
         """
         eng_prefix = "ep."
-        eng_config = {f"{eng_prefix}url":self.sqlalchemy_url,f"{eng_prefix}echo":"False"}
+        eng_config = {
+            f"{eng_prefix}url": self.sqlalchemy_url,
+            f"{eng_prefix}echo": "False"
+        }
 
         if self.config.get('sqlalchemy_eng_params'):
             for key, value in self.config['sqlalchemy_eng_params'].items():
@@ -90,35 +96,65 @@ class mssqlConnector(SQLConnector):
     def to_sql_type(self, jsonschema_type: dict) -> None:
         """Returns a JSON Schema equivalent for the given SQL type.
 
-        Developers may optionally add custom logic before calling the default
-        implementation inherited from the base class.
+        By default will call `typing.to_sql_type()`.
+
+        Developers may override this method to accept additional input
+        argument types, to support non-standard types, or to provide custom
+        typing logic. If overriding this method, developers should call the
+        default implementation from the base class for all unhandled cases.
+
+        Args:
+            jsonschema_type: The JSON Schema representation of the source type.
+
+        Returns:
+            The SQLAlchemy type representation of the data type.
         """
-        if self.config.get('hd_jsonschema_types',False):
+        if self.config.get('hd_jsonschema_types', False):
             return self.hd_to_sql_type(jsonschema_type)
-        else: 
+        else:
             return self.org_to_sql_type(jsonschema_type)
 
     @staticmethod
     def org_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
         """Returns a JSON Schema equivalent for the given SQL type.
-        
-        Developers may optionally add custom logic before calling the default implementation
-        inherited from the base class.
+
+        By default will call `typing.to_sql_type()`.
+
+        Developers may override this method to accept additional input
+        argument types, to support non-standard types, or to provide custom
+        typing logic. If overriding this method, developers should call the
+        default implementation from the base class for all unhandled cases.
+
+        Args:
+            jsonschema_type: The JSON Schema representation of the source type.
+
+        Returns:
+            The SQLAlchemy type representation of the data type.
         """
 
         if 'boolean' in jsonschema_type.get('type'):
             return cast(types.TypeEngine, mssql.VARCHAR(length=5))
-        
+
         return SQLConnector.to_sql_type(jsonschema_type)
-        
+
     @staticmethod
     def hd_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
         """Returns a JSON Schema equivalent for the given SQL type.
-        
-        Developers may optionally add custom logic before calling the default implementation
-        inherited from the base class.
+
+        By default will call `typing.to_sql_type()`.
+
+        Developers may override this method to accept additional input
+        argument types, to support non-standard types, or to provide custom
+        typing logic. If overriding this method, developers should call the
+        default implementation from the base class for all unhandled cases.
+
+        Args:
+            jsonschema_type: The JSON Schema representation of the source type.
+
+        Returns:
+            The SQLAlchemy type representation of the data type.
         """
-        # Send date, time, and date-time to specific MSSQL type 
+        # Send date, time, and date-time to specific MSSQL type
         # Strings to NVARCHAR and add maxLength
         if 'string' in jsonschema_type.get('type'):
             if jsonschema_type.get("format") == "date":
@@ -129,18 +165,18 @@ class mssqlConnector(SQLConnector):
                 return cast(sqlalchemy.types.TypeEngine, mssql.DATETIME())
             if jsonschema_type.get("format") == "uuid":
                 return cast(sqlalchemy.types.TypeEngine, mssql.UNIQUEIDENTIFIER())
-            length:int = jsonschema_type.get('maxLength')
+            length: int = jsonschema_type.get('maxLength')
             if length:
                 return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR(length=length))
             else:
                 return cast(sqlalchemy.types.TypeEngine, mssql.NVARCHAR())
-        
+
         # This is a MSSQL only DataType
         # SQLA does the converion Python True, False
         # to MS SQL Server BIT 0, 1
         if 'boolean' in jsonschema_type.get('type'):
             return cast(types.TypeEngine, mssql.BIT)
-        
+
         # MS SQL Server Intergers and ANSI SQL Integers
         if 'integer' in jsonschema_type.get('type'):
             minimum: float = jsonschema_type.get('minimum')
@@ -156,10 +192,10 @@ class mssqlConnector(SQLConnector):
                 return cast(sqlalchemy.types.TypeEngine, mssql.TINYINT())
             else:
                 precision = str(maximum).count('9')
-                return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=0))
+                return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=0))
 
-        # MS SQL Server monetary, currency, float, and real values 
-        if 'number' in jsonschema_type.get('type'):  
+        # MS SQL Server monetary, currency, float, and real values
+        if 'number' in jsonschema_type.get('type'):
             minimum = jsonschema_type.get('minimum')
             maximum = jsonschema_type.get('maximum')
             if (minimum == -922337203685477.6) and (maximum == 922337203685477.6):
@@ -180,17 +216,17 @@ class mssqlConnector(SQLConnector):
                 if 'e+' not in str(maximum):
                     precision = str(maximum).count('9')
                     scale = precision - str(maximum).rfind('.')
-                    return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))
+                    return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
                 else:
                     precision_start = str(maximum).rfind('+')
                     precision = int(str(maximum)[precision_start:])
                     scale_start = str(maximum).find('.') + 1
                     scale_end = str(maximum).find('e')
                     scale = scale_end - scale_start
-                    return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision,scale=scale))           
+                    return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
 
         return SQLConnector.to_sql_type(jsonschema_type)
-    
+
     def _create_empty_column(
         self,
         full_table_name: str,
@@ -214,7 +250,7 @@ class mssqlConnector(SQLConnector):
             table_name=full_table_name, column_name=column_name, column_type=sql_type
         )
         self.raw_conn_execute(str(column_add_ddl))
-    
+
     def rename_column(self, full_table_name: str, old_name: str, new_name: str) -> None:
         """Rename the provided columns.
 
@@ -240,7 +276,7 @@ class mssqlConnector(SQLConnector):
         Args:
             sql_command: The SQL you want to run
 
-        """        
+        """
         self.logger.info(sql_command)
         raw_conn = self.connection.engine.raw_connection()
         try:
@@ -281,7 +317,7 @@ class mssqlConnector(SQLConnector):
                 "object_type": object_type,
             },
         )
-    
+
     @staticmethod
     def get_column_add_ddl(
         table_name: str, column_name: str, column_type: types.TypeEngine
@@ -312,6 +348,7 @@ class mssqlConnector(SQLConnector):
             },
         )
 
+
 class mssqlSink(SQLSink):
     """mssql target sink class."""
 
@@ -332,7 +369,7 @@ class mssqlSink(SQLSink):
         # if self.connector._dialect.name == "mssql" and stream_schema == "public":
         if stream_schema == "public":
             stream_schema = "dbo"
-        
+
         return stream_schema
 
     def conform_name(self, name: str, object_type: Optional[str] = None) -> str:
@@ -357,8 +394,8 @@ class mssqlSink(SQLSink):
         # # replace leading digit
         # return replace_leading_digit(name)
         return(name)
-        #return super().conform_name(name)
-    
+        # return super().conform_name(name)
+
     def bulk_insert_records(
         self,
         full_table_name: str,
@@ -380,10 +417,10 @@ class mssqlSink(SQLSink):
         Returns:
             True if table exists, False if not, None if unsure or undetectable.
         """
-        # We need to grab the schema_name and table_name 
+        # We need to grab the schema_name and table_name
         # for the Table class instance
         _, schema_name, table_name = SQLConnector.parse_full_table_name(self, full_table_name=full_table_name)
-        
+
         # You also need a blank MetaData instance
         # for the Table class instance
         meta = MetaData()
