@@ -427,7 +427,7 @@ class mssqlSink(SQLSink):
 
         # This is the Table instance that will autoload
         # all the info about the table from the target server
-        table = Table(table_name, meta, autoload=True, autoload_with=self.connector.connection.engine, schema=schema_name)
+        table = Table(table_name, meta, autoload=True, autoload_with=self.connector._engine, schema=schema_name)
 
         conformed_records = (
             [self.conform_record(record) for record in records]
@@ -438,7 +438,7 @@ class mssqlSink(SQLSink):
         # This is a insert based off SQLA example
         # https://docs.sqlalchemy.org/en/20/dialects/mssql.html#insert-behavior
         try:
-            with self.connector.connection.engine.connect() as conn:
+            with self.connector._connect() as conn:
                 with conn.begin():
                     conn.execute(
                         table.insert(),
