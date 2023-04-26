@@ -4,6 +4,8 @@
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
 ### Whats New 🛳️🎉
+**2023-04-26 New HD JSON Schema Types:**  Added translations for HD JSON Schema definitions of Xml and Binary types from the buzzcutnorman `tap-mssql`.  This is Thanks🙏 to Singer-SDK 0.24.0 which allows for JSON Schema `contentMediaType` and `contentEncoding`.  Currently all Binary data types are decoded before being inserted as VARBINARY.  XML types do not have the Collection XML schema just the XML content.
+
 **2023-04-14 Upgraded to Meltano Singer-SDK 0.24.0**
 
 **2023-02-08 Higher Defined(HD) JSON Schema types:**  Translates the Higher Defined(HD) JSON Schema types from the buzzcutnorman `tap-mssql` back into MS SQL data types.  You can give it a try by setting `hd_jsonschema_types` to `True` in your config.json or meltano.yml
