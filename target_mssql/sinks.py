@@ -434,10 +434,6 @@ class mssqlSink(SQLSink):
             property_schema: dict = properties.get(key)
             # Decode base64 binary fields in record
             if property_schema.get('contentEncoding') == 'base64':
-                # We need to change from hex first becuase in
-                # the tap _typing.py by defualt all python byte
-                # data types are converted to hex 
-                value = bytes.fromhex(value)
                 record.update({key: b64decode(value)})
 
         return record
