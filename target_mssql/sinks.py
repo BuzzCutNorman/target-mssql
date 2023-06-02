@@ -210,9 +210,9 @@ class mssqlConnector(SQLConnector):
         if 'number' in jsonschema_type.get('type'):
             minimum = jsonschema_type.get('minimum')
             maximum = jsonschema_type.get('maximum')
-            if (minimum == -922337203685477.6) and (maximum == 922337203685477.6):
             # There is something that is traucating and rounding this number
             # if (minimum == -922337203685477.5808) and (maximum == 922337203685477.5807):
+            if (minimum == -922337203685477.6) and (maximum == 922337203685477.6):
                 return cast(sqlalchemy.types.TypeEngine, mssql.MONEY())
             elif (minimum == -214748.3648) and (maximum == 214748.3647):
                 return cast(sqlalchemy.types.TypeEngine, mssql.SMALLMONEY())
@@ -458,7 +458,6 @@ class mssqlSink(SQLSink):
         table: Table = Table(table_name, meta, autoload=True, autoload_with=self.connector._engine, schema=schema_name)
 
         self.TARGET_TABLE = table
-        self.logger.info(f"I was called for target table: {full_table_name}")
 
     def bulk_insert_records(
         self,
