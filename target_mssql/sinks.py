@@ -436,11 +436,12 @@ class mssqlSink(SQLSink):
         properties: dict = self.schema.get('properties')
 
         for key, value in record.items():
-            # Get the Item/Column property
-            property_schema: dict = properties.get(key)
-            # Decode base64 binary fields in record
-            if property_schema.get('contentEncoding') == 'base64':
-                record.update({key: b64decode(value)})
+            if value is not None:
+                # Get the Item/Column property
+                property_schema: dict = properties.get(key)
+                # Decode base64 binary fields in record
+                if property_schema.get('contentEncoding') == 'base64':
+                    record.update({key: b64decode(value)})
 
         return record
 
