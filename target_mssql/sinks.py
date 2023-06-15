@@ -239,6 +239,56 @@ class mssqlConnector(SQLConnector):
 
         return SQLConnector.to_sql_type(jsonschema_type)
 
+    def create_empty_table(
+        self,
+        full_table_name: str,
+        schema: dict,
+        primary_keys: list[str] | None = None,
+        partition_keys: list[str] | None = None,
+        as_temp_table: bool = False,  # noqa: FBT001, FBT002
+    ) -> None:
+        """Create an empty target table.
+
+        Args:
+            full_table_name: the target table name.
+            schema: the JSON schema for the new table.
+            primary_keys: list of key properties.
+            partition_keys: list of partition keys.
+            as_temp_table: True to create a temp table.
+
+        Raises:
+            NotImplementedError: if temp tables are unsupported and as_temp_table=True.
+            RuntimeError: if a variant schema is passed with no properties defined.
+        """
+        if as_temp_table:
+            msg = "Temporary tables are not supported."
+            raise NotImplementedError(msg)
+
+        _ = partition_keys  # Not supported in generic implementation.
+
+        _, schema_name, table_name = self.parse_full_table_name(full_table_name)
+        meta = sqlalchemy.MetaData(schema=schema_name)
+        columns: list[sqlalchemy.Column] = []
+        primary_keys = primary_keys or []
+        try:
+            properties: dict = schema["properties"]
+        except KeyError as e:
+            msg = f"Schema for '{full_table_name}' does not define properties: {schema}"
+            raise RuntimeError(msg) from e
+        for property_name, property_jsonschema in properties.items():
+            is_primary_key = property_name in primary_keys
+            columns.append(
+                sqlalchemy.Column(
+                    property_name,
+                    self.to_sql_type(property_jsonschema),
+                    primary_key=is_primary_key,
+                    autoincrement=False,
+                ),
+            )
+
+        _ = sqlalchemy.Table(table_name, meta, *columns)
+        meta.create_all(self._engine)
+
     def _create_empty_column(
         self,
         full_table_name: str,
