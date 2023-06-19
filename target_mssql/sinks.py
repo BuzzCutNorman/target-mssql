@@ -276,15 +276,22 @@ class mssqlConnector(SQLConnector):
             msg = f"Schema for '{full_table_name}' does not define properties: {schema}"
             raise RuntimeError(msg) from e
         for property_name, property_jsonschema in properties.items():
-            is_primary_key = property_name in primary_keys
-            columns.append(
-                sqlalchemy.Column(
-                    property_name,
-                    self.to_sql_type(property_jsonschema),
-                    primary_key=is_primary_key,
-                    autoincrement=False,
-                ),
-            )
+            if property_name in primary_keys:
+                columns.append(
+                    sqlalchemy.Column(
+                        property_name,
+                        self.to_sql_type(property_jsonschema),
+                        primary_key=True,
+                        autoincrement=False,
+                    )
+                )
+            else:
+                columns.append(
+                    sqlalchemy.Column(
+                        property_name,
+                        self.to_sql_type(property_jsonschema),
+                    ),
+                )
 
         sqlalchemy.Table(table_name, meta, *columns).create(self._engine)
 
