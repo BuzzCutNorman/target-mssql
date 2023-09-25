@@ -235,7 +235,7 @@ class mssqlConnector(SQLConnector):
                 # A check for 'e+' in the string of the value is what I key off.
                 # If it is no present we can count the number of '9' in the string.
                 # If it is present we need to do a little more parsing to translate.
-                if 'e+' not in str(maximum):
+                if 'e+' not in str(maximum).lower():
                     precision = str(maximum).count('9')
                     scale = precision - str(maximum).rfind('.')
                     return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
@@ -243,7 +243,7 @@ class mssqlConnector(SQLConnector):
                     precision_start = str(maximum).rfind('+')
                     precision = int(str(maximum)[precision_start:])
                     scale_start = str(maximum).find('.') + 1
-                    scale_end = str(maximum).find('e')
+                    scale_end = str(maximum).lower().find('e')
                     scale = scale_end - scale_start
                     return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
 
