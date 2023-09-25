@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 from base64 import b64decode
-from typing import Any, Dict, cast, Iterable, Optional
+from typing import Any, Dict, cast, Iterable, Iterator, Optional
+from contextlib import contextmanager
 
 
 import pyodbc
@@ -40,6 +41,11 @@ class mssqlConnector(SQLConnector):
             pyodbc.pooling = False
 
         super().__init__(config, sqlalchemy_url)
+
+    @contextmanager
+    def _connect(self) -> Iterator[sqlalchemy.engine.Connection]:
+        with self._engine.connect() as conn:
+            yield conn
 
     def get_sqlalchemy_url(cls, config: dict) -> str:
         """Generates a SQLAlchemy URL for mssql.
