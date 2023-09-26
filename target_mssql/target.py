@@ -29,7 +29,7 @@ class Targetmssql(SQLTarget):
             description="The Python Driver you will be using to connect to the SQL server",
             required=True,
             allowed_values=["pyodbc", "pymssql"],
-            default="pyodbc"
+            default="pymssql"
         ),
         th.Property(
             "host",
