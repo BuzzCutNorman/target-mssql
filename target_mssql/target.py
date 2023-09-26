@@ -5,9 +5,7 @@ from __future__ import annotations
 from singer_sdk import typing as th
 from singer_sdk.target_base import SQLTarget
 
-from target_mssql.sinks import (
-    mssqlSink,
-)
+from target_mssql.sinks import mssqlSink
 
 
 class Targetmssql(SQLTarget):
@@ -20,17 +18,24 @@ class Targetmssql(SQLTarget):
         th.Property(
             "dialect",
             th.StringType,
-            description="The Dialect of SQLAlchamey"
+            description="The Dialect of SQLAlchamey",
+            required=True,
+            allowed_values=["mssql"],
+            default="mssql"
         ),
         th.Property(
             "driver_type",
             th.StringType,
-            description="The Python Driver you will be using to connect to the SQL server"
+            description="The Python Driver you will be using to connect to the SQL server",
+            required=True,
+            allowed_values=["pyodbc", "pymssql"],
+            default="pyodbc"
         ),
         th.Property(
             "host",
             th.StringType,
-            description="The FQDN of the Host serving out the SQL Instance"
+            description="The FQDN of the Host serving out the SQL Instance",
+            required=True
         ),
         th.Property(
             "port",
@@ -40,17 +45,21 @@ class Targetmssql(SQLTarget):
         th.Property(
             "user",
             th.StringType,
-            description="The User Account who has been granted access to the SQL Server"
+            description="The User Account who has been granted access to the SQL Server",
+            required=True
         ),
         th.Property(
             "password",
             th.StringType,
-            description="The Password for the User account"
+            description="The Password for the User account",
+            required=True,
+            secret=True
         ),
         th.Property(
             "database",
             th.StringType,
-            description="The Default database for this connection"
+            description="The Default database for this connection",
+            required=True
         ),
         th.Property(
             "default_target_schema",
@@ -80,6 +89,11 @@ class Targetmssql(SQLTarget):
                     "driver",
                     th.StringType,
                     description="The Driver to use when connection should match the Driver Type"
+                ),
+                th.Property(
+                    "MultiSubnetFailover",
+                    th.StringType,
+                    description="This is a Yes No option"
                 ),
                 th.Property(
                     "TrustServerCertificate",
