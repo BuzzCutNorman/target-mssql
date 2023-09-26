@@ -98,7 +98,7 @@ class mssqlConnector(SQLConnector):
         eng_prefix = "ep."
         eng_config = {
             f"{eng_prefix}url": self.sqlalchemy_url,
-            f"{eng_prefix}echo": "False"
+            f"{eng_prefix}echo": "False",
         }
 
         if self.config.get('sqlalchemy_eng_params'):
@@ -522,7 +522,7 @@ class mssqlSink(SQLSink):
 
         # This is the Table instance that will autoload
         # all the info about the table from the target server
-        table: Table = Table(table_name, meta, autoload=True, autoload_with=self.connector._engine, schema=schema_name)
+        table: Table = Table(table_name, meta, autoload_with=self.connector._engine, schema=schema_name)
 
         self._target_table = table
 
