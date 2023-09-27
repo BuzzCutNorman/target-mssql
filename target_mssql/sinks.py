@@ -446,6 +446,9 @@ class mssqlSink(SQLSink):
             connector: SQLConnector | None = None
     ) -> None:
         super().__init__(target, stream_name, schema, key_properties, connector)
+        # Setup the JSONSchema validator and format_checker combonation you want
+        # The default is format checker is version 3 unless you chagne this
+        self._validator = Draft7Validator(schema, format_checker=Draft7Validator.FORMAT_CHECKER)
 
     @property
     def schema_name(self) -> Optional[str]:
