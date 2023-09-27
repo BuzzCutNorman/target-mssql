@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Any, Dict, cast, Iterable, Iterator, Optional
 
 import pyodbc
+from singer_sdk.target_base import Target
 
 import sqlalchemy
 from sqlalchemy import DDL, Table, MetaData, exc, types, engine_from_config
@@ -435,6 +436,16 @@ class mssqlSink(SQLSink):
     connector_class = mssqlConnector
 
     _target_table: Table = None
+
+    def __init__(
+            self, 
+            target: Target, 
+            stream_name: str, 
+            schema: dict, 
+            key_properties: list[str] | None, 
+            connector: SQLConnector | None = None
+    ) -> None:
+        super().__init__(target, stream_name, schema, key_properties, connector)
 
     @property
     def schema_name(self) -> Optional[str]:
