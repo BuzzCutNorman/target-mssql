@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 from base64 import b64decode
-from decimal import Decimal
 from contextlib import contextmanager
+from jsonschema import Draft7Validator
+from decimal import Decimal
 from typing import Any, Dict, cast, Iterable, Iterator, Optional
 
 import pyodbc
