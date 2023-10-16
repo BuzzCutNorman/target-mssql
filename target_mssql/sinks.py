@@ -244,6 +244,39 @@ class mssqlConnector(SQLConnector):
 
         return SQLConnector.to_sql_type(jsonschema_type)
 
+    def to_sql_pk_type(self, jsonschema_type: dict) -> types.TypeEngine:
+        """Returns a SQL equivalent safe for a primary key for the given JSON Schema type.
+
+        Args:
+            jsonschema_type: The JSON Schema representation of the source type.
+
+        Returns:
+            The SQLAlchemy type representation of the data type.
+        """
+        sql_type: types.TypeEngine = self.to_sql_type(jsonschema_type)
+
+        if isinstance(sql_type, str):
+            sql_type_name = sql_type
+        elif isinstance(sql_type, sqlalchemy.types.TypeEngine):
+            sql_type_name = type(sql_type).__name__
+        elif isinstance(sql_type, type) and issubclass(
+            sql_type, sqlalchemy.types.TypeEngine
+        ):
+            sql_type_name = sql_type.__name__
+        else:
+            raise ValueError(
+                "Expected `str` or a SQLAlchemy `TypeEngine` object or type."
+             )
+
+        if sql_type_name in ['CHAR', 'NCHAR', 'VARCHAR', 'NVARCHAR']:
+            maxLength: int = getattr(sql_type, 'length')
+            if maxLength and maxLength <= 450:
+                pass
+            else:
+                setattr(sql_type, 'length', 450)
+
+        return sql_type
+
     def create_empty_table(
         self,
         full_table_name: str,
@@ -285,7 +318,7 @@ class mssqlConnector(SQLConnector):
                 columns.append(
                     sqlalchemy.Column(
                         property_name,
-                        self.to_sql_type(property_jsonschema),
+                        self.to_sql_pk_type(property_jsonschema),
                         primary_key=True,
                         autoincrement=False,
                     )
@@ -297,7 +330,6 @@ class mssqlConnector(SQLConnector):
                         self.to_sql_type(property_jsonschema),
                     ),
                 )
-
         sqlalchemy.Table(table_name, meta, *columns).create(self._engine)
 
     def _create_empty_column(
