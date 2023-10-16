@@ -4,11 +4,9 @@
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
 ### Whats New 🛳️🎉
-**2023-06-14 Enhancement:**  The behavior of when a new mssqlConnector class is generated has been changed.  When the Target gets its first Schema message a Target level connector is generated.  This connector is then passed on to Sinks as they are initialized.  This mean instead of a database session per Sink there is a smaller pool of session being utilized over and over. You can use sp_who to see how may sessions are active.  I couldn't have added this without the SQLConnector refactoring work @qbatten did in SDK 0.20.0.  The inspiration for this enhancement came from comments made by @kgpayne. So a big Thanks 🙏 to both of them.
+**2023-10-16 Upgraded to Meltano Singer-SDK 0.32.0:** SQLAlchemy 2.x is main stream in this version so I took advantage of that and bumped from `1.4.x` to `2.x`.  The issue with Windows wheels for `pymssql` was resolved so I bumped it back up to `2.2.8`. In the `hd_jsonschema_types` the `minimum` and `maximum` values used to define `NUMERIC` or `DECIMAL` precision and scale values were being rounded.  This caused an issue with the translation on the target side.  I leveraged scientific notation to resolve this. Runs that contained streams with `strings` as primary keys were failing during table creation.  This has been resolved by setting all primary key columns of `string` type to a size of `450` bytes or `NVARCHAR(450)`.  
 
-**2023-06-05 Upgraded to Meltano Singer-SDK 0.27.0:**  Reduced the amount of times target-mssql asks SQL Server for target table info by adding a TARGET_TABLE constant. 
-
-**2023-04-26 New HD JSON Schema Types:**  Added translations for HD JSON Schema definitions of Xml and Binary types from the buzzcutnorman `tap-mssql`.  This is Thanks🙏 to Singer-SDK 0.24.0 which allows for JSON Schema `contentMediaType` and `contentEncoding`.  Currently all Binary data types are decoded before being inserted as VARBINARY.  XML types do not have the Collection XML schema just the XML content.
+**2023-04-26 New HD JSON Schema Types:**  Added translations for HD JSON Schema definitions of Xml and Binary types from the buzzcutnorman `tap-mssql`.  This is Thanks🙏 to Singer-SDK 0.24.0 which allows for JSON Schema `contentMediaType` and `contentEncoding`.  Currently all Binary data types are decoded before being inserted as `VARBINARY`.  `XML` types do not have the Collection XML schema just the XML content.
 
 **2023-02-08 Higher Defined(HD) JSON Schema types:**  Translates the Higher Defined(HD) JSON Schema types from the buzzcutnorman `tap-mssql` back into MS SQL data types.  You can give it a try by setting `hd_jsonschema_types` to `True` in your config.json or meltano.yml
 <!--
@@ -50,24 +48,24 @@ This section can be created by copy-pasting the CLI output from:
 target-mssql --about --format=markdown
 ```
 -->
-| Setting             | Required | Default | Description |
-|:--------------------|:--------:|:-------:|:------------|
-| dialect             | False    | None    | The Dialect of SQLAlchamey |
-| driver_type         | False    | None    | The Python Driver you will be using to connect to the SQL server |
-| host                | False    | None    | The FQDN of the Host serving out the SQL Instance |
-| port                | False    | None    | The port on which SQL awaiting connection |
-| user                | False    | None    | The User Account who has been granted access to the SQL Server |
-| password            | False    | None    | The Password for the User account |
-| database            | False    | None    | The Default database for this connection |
+| Setting              | Required | Default | Description |
+|:---------------------|:--------:|:-------:|:------------|
+| dialect              | True     | mssql   | The Dialect of SQLAlchamey |
+| driver_type          | True     | pymssql | The Python Driver you will be using to connect to the SQL server |
+| host                 | True     | None    | The FQDN of the Host serving out the SQL Instance |
+| port                 | False    | None    | The port on which SQL awaiting connection |
+| user                 | True     | None    | The User Account who has been granted access to the SQL Server |
+| password             | True     | None    | The Password for the User account |
+| database             | True     | None    | The Default database for this connection |
 | sqlalchemy_eng_params| False    | None    | SQLAlchemy Engine Paramaters: fast_executemany, future |
-| sqlalchemy_url_query| False    | None    | SQLAlchemy URL Query options: driver, TrustServerCertificate |
-| batch_config        | False    | None    | Optional Batch Message configuration |
-| start_date          | False    | None    | The earliest record date to sync |
-| hd_jsonschema_types  | False   |       0 | Turn on translation of Higher Defined(HD) JSON Schema types to SQL Types |
-| stream_maps         | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
-| stream_map_config   | False    | None    | User-defined config values to be used within map expressions. |
-| flattening_enabled  | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
-| flattening_max_depth| False    | None    | The max depth to flatten schemas. |
+| sqlalchemy_url_query | False    | None    | SQLAlchemy URL Query options: driver, TrustServerCertificate |
+| batch_config         | False    | None    | Optional Batch Message configuration |
+| start_date           | False    | None    | The earliest record date to sync |
+| hd_jsonschema_types  | False    | False | Turn on Higher Defined(HD) JSON Schema types to assist Targets |
+| stream_maps          | False    | None    | Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
+| stream_map_config    | False    | None    | User-defined config values to be used within map expressions. |
+| flattening_enabled   | False    | None    | 'True' to enable schema flattening and automatically expand nested properties. |
+| flattening_max_depth | False    | None    | The max depth to flatten schemas. |
 
 A full list of supported settings and capabilities for this
 target is available by running:

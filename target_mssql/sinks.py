@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 from base64 import b64decode
-from typing import Any, Dict, cast, Iterable, Optional
-
+from contextlib import contextmanager
+from jsonschema import Draft7Validator
+from decimal import Decimal
+from typing import Any, Dict, cast, Iterable, Iterator, Optional
 
 import pyodbc
+from singer_sdk.target_base import Target
 
 import sqlalchemy
 from sqlalchemy import DDL, Table, MetaData, exc, types, engine_from_config
@@ -26,6 +29,7 @@ class mssqlConnector(SQLConnector):
     allow_column_rename: bool = True  # Whether RENAME COLUMN is supported.
     allow_column_alter: bool = False  # Whether altering column types is supported.
     allow_merge_upsert: bool = False  # Whether MERGE UPSERT is supported.
+    allow_overwrite: bool = False  # Whether overwrite load method is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
     def __init__(
@@ -40,7 +44,12 @@ class mssqlConnector(SQLConnector):
 
         super().__init__(config, sqlalchemy_url)
 
-    def get_sqlalchemy_url(cls, config: dict) -> str:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlalchemy.engine.Connection]:
+        with self._engine.connect() as conn:
+            yield conn
+
+    def get_sqlalchemy_url(cls, config: dict[str, Any]) -> str:
         """Generates a SQLAlchemy URL for mssql.
 
         Args:
@@ -49,31 +58,23 @@ class mssqlConnector(SQLConnector):
         Returns:
             The URL as a string.
         """
-        if config['dialect'] == "mssql":
-            url_drivername: str = config['dialect']
-        else:
-            cls.logger.error("Invalid dialect given")
-            exit(1)
-
-        if config['driver_type'] in ["pyodbc"]:
-            url_drivername += f"+{config['driver_type']}"
-        else:
-            cls.logger.error("Invalid driver_type given")
-            exit(1)
-
+        url_drivername = f"{config.get('dialect')}+{config.get('driver_type')}"
+        
         config_url = URL.create(
             url_drivername,
-            config['user'],
-            config['password'],
-            host=config['host'],
-            database=config['database']
+            config.get('user'),
+            config.get('password'),
+            host=config.get('host'),
+            database=config.get('database')
         )
 
         if 'port' in config:
-            config_url = config_url.set(port=config['port'])
+            config_url = config_url.set(port=config.get('port'))
 
         if 'sqlalchemy_url_query' in config:
-            config_url = config_url.update_query_dict(config['sqlalchemy_url_query'])
+            config_url = config_url.update_query_dict(
+                config.get('sqlalchemy_url_query')
+                )
 
         return (config_url)
 
@@ -89,7 +90,10 @@ class mssqlConnector(SQLConnector):
         eng_prefix = "ep."
         eng_config = {
             f"{eng_prefix}url": self.sqlalchemy_url,
-            f"{eng_prefix}echo": "False"
+            f"{eng_prefix}echo": "False",
+            f"{eng_prefix}json_serializer": self.serialize_json,
+            f"{eng_prefix}json_deserializer": self.deserialize_json,
+            
         }
 
         if self.config.get('sqlalchemy_eng_params'):
@@ -114,6 +118,7 @@ class mssqlConnector(SQLConnector):
         Returns:
             The SQLAlchemy type representation of the data type.
         """
+        self.logger.info(f"json schema type: {jsonschema_type}")
         if self.config.get('hd_jsonschema_types', False):
             return self.hd_to_sql_type(jsonschema_type)
         else:
@@ -212,20 +217,20 @@ class mssqlConnector(SQLConnector):
             maximum = jsonschema_type.get('maximum')
             # There is something that is traucating and rounding this number
             # if (minimum == -922337203685477.5808) and (maximum == 922337203685477.5807):
-            if (minimum == -922337203685477.6) and (maximum == 922337203685477.6):
+            if (minimum == Decimal('-922337203685477.6')) and (maximum == Decimal('922337203685477.6')):
                 return cast(sqlalchemy.types.TypeEngine, mssql.MONEY())
-            elif (minimum == -214748.3648) and (maximum == 214748.3647):
+            elif (minimum == Decimal('-214748.3648')) and (maximum == Decimal('214748.3647')):
                 return cast(sqlalchemy.types.TypeEngine, mssql.SMALLMONEY())
-            elif (minimum == -1.79e308) and (maximum == 1.79e308):
+            elif (minimum == Decimal('-1.79e308')) and (maximum == Decimal('1.79e308')):
                 return cast(sqlalchemy.types.TypeEngine, mssql.FLOAT())
-            elif (minimum == -3.40e38) and (maximum == 3.40e38):
+            elif (minimum == Decimal('-3.40e38')) and (maximum == Decimal('3.40e38')):
                 return cast(sqlalchemy.types.TypeEngine, mssql.REAL())
             else:
                 # Python will start using scientific notition for float values.
                 # A check for 'e+' in the string of the value is what I key off.
                 # If it is no present we can count the number of '9' in the string.
                 # If it is present we need to do a little more parsing to translate.
-                if 'e+' not in str(maximum):
+                if 'e+' not in str(maximum).lower():
                     precision = str(maximum).count('9')
                     scale = precision - str(maximum).rfind('.')
                     return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
@@ -233,11 +238,44 @@ class mssqlConnector(SQLConnector):
                     precision_start = str(maximum).rfind('+')
                     precision = int(str(maximum)[precision_start:])
                     scale_start = str(maximum).find('.') + 1
-                    scale_end = str(maximum).find('e')
+                    scale_end = str(maximum).lower().find('e')
                     scale = scale_end - scale_start
                     return cast(sqlalchemy.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
 
         return SQLConnector.to_sql_type(jsonschema_type)
+
+    def to_sql_pk_type(self, jsonschema_type: dict) -> types.TypeEngine:
+        """Returns a SQL equivalent safe for a primary key for the given JSON Schema type.
+
+        Args:
+            jsonschema_type: The JSON Schema representation of the source type.
+
+        Returns:
+            The SQLAlchemy type representation of the data type.
+        """
+        sql_type: types.TypeEngine = self.to_sql_type(jsonschema_type)
+
+        if isinstance(sql_type, str):
+            sql_type_name = sql_type
+        elif isinstance(sql_type, sqlalchemy.types.TypeEngine):
+            sql_type_name = type(sql_type).__name__
+        elif isinstance(sql_type, type) and issubclass(
+            sql_type, sqlalchemy.types.TypeEngine
+        ):
+            sql_type_name = sql_type.__name__
+        else:
+            raise ValueError(
+                "Expected `str` or a SQLAlchemy `TypeEngine` object or type."
+             )
+
+        if sql_type_name in ['CHAR', 'NCHAR', 'VARCHAR', 'NVARCHAR']:
+            maxLength: int = getattr(sql_type, 'length')
+            if maxLength and maxLength <= 450:
+                pass
+            else:
+                setattr(sql_type, 'length', 450)
+
+        return sql_type
 
     def create_empty_table(
         self,
@@ -280,7 +318,7 @@ class mssqlConnector(SQLConnector):
                 columns.append(
                     sqlalchemy.Column(
                         property_name,
-                        self.to_sql_type(property_jsonschema),
+                        self.to_sql_pk_type(property_jsonschema),
                         primary_key=True,
                         autoincrement=False,
                     )
@@ -292,7 +330,6 @@ class mssqlConnector(SQLConnector):
                         self.to_sql_type(property_jsonschema),
                     ),
                 )
-
         sqlalchemy.Table(table_name, meta, *columns).create(self._engine)
 
     def _create_empty_column(
@@ -432,6 +469,19 @@ class mssqlSink(SQLSink):
 
     _target_table: Table = None
 
+    def __init__(
+            self, 
+            target: Target, 
+            stream_name: str, 
+            schema: dict, 
+            key_properties: list[str] | None, 
+            connector: SQLConnector | None = None
+    ) -> None:
+        super().__init__(target, stream_name, schema, key_properties, connector)
+        # Setup the JSONSchema validator and format_checker combonation you want
+        # The default is format checker is version 3 unless you chagne this
+        self._validator = Draft7Validator(schema, format_checker=Draft7Validator.FORMAT_CHECKER)
+
     @property
     def schema_name(self) -> Optional[str]:
         """Return the schema name or `None` if using names with no schema part.
@@ -512,7 +562,7 @@ class mssqlSink(SQLSink):
 
         # This is the Table instance that will autoload
         # all the info about the table from the target server
-        table: Table = Table(table_name, meta, autoload=True, autoload_with=self.connector._engine, schema=schema_name)
+        table: Table = Table(table_name, meta, autoload_with=self.connector._engine, schema=schema_name)
 
         self._target_table = table
 
