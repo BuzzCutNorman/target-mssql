@@ -5,11 +5,9 @@ from __future__ import annotations
 import typing as t
 from base64 import b64decode
 from contextlib import contextmanager
-from jsonschema import Draft7Validator
 from decimal import Decimal
 
 import pyodbc
-from singer_sdk.target_base import Target
 
 import sqlalchemy as sa
 from sqlalchemy import DDL, Table, MetaData, exc, types, engine_from_config
@@ -469,19 +467,6 @@ class mssqlSink(SQLSink):
     connector_class = mssqlConnector
 
     _target_table: Table = None
-
-    def __init__(
-            self, 
-            target: Target, 
-            stream_name: str, 
-            schema: dict, 
-            key_properties: list[str] | None, 
-            connector: SQLConnector | None = None
-    ) -> None:
-        super().__init__(target, stream_name, schema, key_properties, connector)
-        # Setup the JSONSchema validator and format_checker combonation you want
-        # The default is format checker is version 3 unless you chagne this
-        self._validator = Draft7Validator(schema, format_checker=Draft7Validator.FORMAT_CHECKER)
 
     @property
     def schema_name(self) -> t.Optional[str]:
