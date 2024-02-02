@@ -598,18 +598,13 @@ class mssqlSink(SQLSink):
 
         # This is a insert based off SQLA example
         # https://docs.sqlalchemy.org/en/20/dialects/mssql.html#insert-behavior
+        rowcount: int = 0
         try:
-            with self.connector._connect() as conn:
-                with conn.begin():
-                    conn.execute(
-                        self.target_table.insert(),
-                        conformed_records,
-                    )
+            with self.connector._connect() as conn, conn.begin():  # noqa: SLF001
+                result:sa.CursorResult = conn.execute(self.target_table.insert(), conformed_records)
+            rowcount = result.rowcount
         except exc.SQLAlchemyError as e:
             error = str(e.__dict__['orig'])
             self.logger.info(error)
 
-        if isinstance(records, list):
-            return len(records)  # If list, we can quickly return record count.
-
-        return None  # Unknown record count.
+        return rowcount
