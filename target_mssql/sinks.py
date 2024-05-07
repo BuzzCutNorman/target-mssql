@@ -8,14 +8,12 @@ from contextlib import contextmanager
 from decimal import Decimal
 
 import pyodbc
-
 import sqlalchemy as sa
-from sqlalchemy import DDL, Table, MetaData, exc, types, engine_from_config
-from sqlalchemy.dialects import mssql
-from sqlalchemy.engine import URL, Engine
-
 from singer_sdk.connectors import SQLConnector
 from singer_sdk.sinks import SQLSink
+from sqlalchemy import DDL, MetaData, Table, engine_from_config, exc, types
+from sqlalchemy.dialects import mssql
+from sqlalchemy.engine import URL, Engine
 
 
 class mssqlConnector(SQLConnector):
