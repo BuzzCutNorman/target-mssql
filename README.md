@@ -74,18 +74,18 @@ target-mssql --about --format=markdown
 | batch_config.encoding.format | False    | None    | Currently the only format is jsonl |
 | batch_config.encoding.compression | False    | None    | Currently the only compression options is<BR/>gzip |
 | batch_config.storage | False    | None    |             |
-| batch_config.storage.root | False    | None    | the directory you want batch messages<BR/>to be placed in<BR/>example: file://test/batches |
-| batch_config.storage.prefix | False    | None    | What prefix you want your messages to have<BR/>example: test-batch- |
+| batch_config.storage.root | False    | None    | The directory you want batch<BR/>messages to be placed in.<BR/>example: file://test/batches |
+| batch_config.storage.prefix | False    | None    | What prefix you want your<BR/>messages to have<BR/>example: test-batch- |
 | start_date | False    | None    | The earliest record date to sync |
 | hd_jsonschema_types | False    |       False | Turn on translation of Higher Defined(HD)<BR/>JSON Schema types to SQL Types |
 | hard_delete | False    |       False | Hard delete records. |
 | add_record_metadata | False    | None    | Add metadata to records. |
-| load_method | False    | append-only | The method to use when loading data into<BR/>the destination. `append-only` will always write all input records whether that records already exists or not. `upsert` will update existing records and insert new records. `overwrite` will delete all existing records and insert all input records. |
+| load_method | False    | append-only | The method to use when loading data into<BR/>the destination. `append-only` will always<BR/>write all input records whether that<BR/>records already exists or not. <BR/>`upsert` will update existing records and<BR/>insert new records. `overwrite` will<BR/>delete all existing records and insert all input records. |
 | batch_size_rows | False    | None    | Maximum number of rows in each batch. |
 | validate_records | False    |       True | Whether to validate the schema of the<BR/>incoming streams. |
 | stream_maps | False    | None    | Config object for stream maps capability.<BR/>For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html). |
 | stream_map_config | False    | None    | User-defined config values to be used within map expressions. |
-| faker_config | False    | None    | Config for the [`Faker`](https://faker.readthedocs.io/en/master/) instance variable `fake` used within map expressions. Only applicable if the plugin specifies `faker` as an addtional dependency (through the `singer-sdk` `faker` extra or directly). |
+| faker_config | False    | None    | Config for the [`Faker`](https://faker.readthedocs.io/en/master/) instance<BR/>variable `fake` used within map expressions.<BR/>Only applicable if the plugin specifies<BR/>`faker` as an addtional dependency<BR/>(through the `singer-sdk` `faker` extra or directly). |
 | faker_config.seed | False    | None    | Value to seed the Faker generator<BR/>for deterministic output: https://faker.readthedocs.io/en/master/#seeding-the-generator |
 | faker_config.locale | False    | None    | One or more LCID locale strings to<BR/>produce localized output for: https://faker.readthedocs.io/en/master/#localization |
 | flattening_enabled | False    | None    | 'True' to enable schema flattening and<BR/>automatically expand nested properties. |
