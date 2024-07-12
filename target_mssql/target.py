@@ -5,14 +5,14 @@ from __future__ import annotations
 from singer_sdk import typing as th
 from singer_sdk.target_base import SQLTarget
 
-from target_mssql.sinks import mssqlSink
+from target_mssql.sinks import MSSQLSink
 
 
 class Targetmssql(SQLTarget):
     """mssql target class."""
 
     name = "target-mssql"
-    default_sink_class = mssqlSink
+    default_sink_class = MSSQLSink
 
     config_jsonschema = th.PropertiesList(
         th.Property(
