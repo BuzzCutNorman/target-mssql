@@ -4,7 +4,7 @@
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
 ### Whats New 🛳️🎉
-**2024-07-12 Upgraded to Meltano Singer-SDK 0.36.1**
+**2024-07-15 Upgraded to Meltano Singer-SDK 0.36.1**
 
 **2024-01-31 Upgraded to Meltano Singer-SDK 0.34.1:** Happy New Year!!!🎉.  My goal was to start using tags and releases by 2024 and was pretty close.  You can now lock on a release number if you want. 
 
