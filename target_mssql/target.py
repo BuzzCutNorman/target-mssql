@@ -5,14 +5,14 @@ from __future__ import annotations
 from singer_sdk import typing as th
 from singer_sdk.target_base import SQLTarget
 
-from target_mssql.sinks import mssqlSink
+from target_mssql.sinks import MSSQLSink
 
 
 class Targetmssql(SQLTarget):
-    """Sample target for mssql."""
+    """mssql target class."""
 
     name = "target-mssql"
-    default_sink_class = mssqlSink
+    default_sink_class = MSSQLSink
 
     config_jsonschema = th.PropertiesList(
         th.Property(
@@ -101,12 +101,12 @@ class Targetmssql(SQLTarget):
                     description="This is a Yes No option"
                 )
             ),
-            description="SQLAlchemy URL Query options: driver, TrustServerCertificate"
+            description="SQLAlchemy URL Query options: driver, MultiSubnetFailover, TrustServerCertificate"
         ),
         th.Property(
             "batch_config",
             th.ObjectType(
-                th.Property( 
+                th.Property(
                     "encoding",
                     th.ObjectType(
                         th.Property(
@@ -127,14 +127,16 @@ class Targetmssql(SQLTarget):
                         th.Property(
                             "root",
                             th.StringType,
-                            description="the directory you want batch messages to be placed in\n"\
-                                        "example: file://test/batches",
+                            description=("the directory you want batch messages to be placed in\n"
+                                        "example: file://test/batches"
+                            )
                         ),
                         th.Property(
                             "prefix",
                             th.StringType,
-                            description="What prefix you want your messages to have\n"\
-                                        "example: test-batch-",
+                            description=("What prefix you want your messages to have\n"
+                                        "example: test-batch-"
+                            )
                         )
                     )
                 )

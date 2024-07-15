@@ -8,17 +8,32 @@ from contextlib import contextmanager
 from decimal import Decimal
 
 import pyodbc
-
 import sqlalchemy as sa
-from sqlalchemy import DDL, Table, MetaData, exc, types, engine_from_config
+from singer_sdk.connectors import SQLConnector
+from singer_sdk.sinks import SQLSink
+from sqlalchemy import DDL, MetaData, Table, engine_from_config, exc, types
 from sqlalchemy.dialects import mssql
 from sqlalchemy.engine import URL, Engine
 
-from singer_sdk.connectors import SQLConnector
-from singer_sdk.sinks import SQLSink
+MSSQL_PK_CHAR_MAX: int = 450
+MSSQL_BIGINT_MIN: int = -9223372036854775808
+MSSQL_BIGINT_MAX: int = 9223372036854775807
+MSSQL_INT_MIN: int = -2147483648
+MSSQL_INT_MAX: int = 2147483647
+MSSQL_SMALLINT_MIN: int = -32768
+MSSQL_SMALLINT_MAX: int = 32767
+MSSQL_TINYINT_MIN: int = 0
+MSSQL_TINYINT_MAX: int = 255
+MSSQL_MONEY_MIN:Decimal = Decimal("-922337203685477.6")
+MSSQL_MONEY_MAX:Decimal = Decimal("922337203685477.6")
+MSSQL_SMALLMONEY_MIN:Decimal = Decimal("-214748.3648")
+MSSQL_SMALLMONEY_MAX:Decimal = Decimal("214748.3647")
+MSSQL_FLOAT_MIN:Decimal = Decimal("-1.79e308")
+MSSQL_FLOAT_MAX:Decimal = Decimal("1.79e308")
+MSSQL_REAL_MIN:Decimal = Decimal("-3.40e38")
+MSSQL_REAL_MAX:Decimal = Decimal("3.40e38")
 
-
-class mssqlConnector(SQLConnector):
+class MSSQLConnector(SQLConnector):
     """The connector for mssql.
 
     This class handles all DDL and type conversions.
@@ -36,9 +51,10 @@ class mssqlConnector(SQLConnector):
             config: dict | None = None,
             sqlalchemy_url: str | None = None
     ) -> None:
+        """Class Default Init."""
         # If pyodbc given set pyodbc.pooling to False
         # This allows SQLA to manage to connection pool
-        if config['driver_type'] == 'pyodbc':
+        if config["driver_type"] == "pyodbc":
             pyodbc.pooling = False
 
         super().__init__(config, sqlalchemy_url)
@@ -48,7 +64,7 @@ class mssqlConnector(SQLConnector):
         with self._engine.connect() as conn:
             yield conn
 
-    def get_sqlalchemy_url(cls, config: dict[str, t.Any]) -> str:
+    def get_sqlalchemy_url(self, config: dict[str, t.Any]) -> str:
         """Generates a SQLAlchemy URL for mssql.
 
         Args:
@@ -58,21 +74,21 @@ class mssqlConnector(SQLConnector):
             The URL as a string.
         """
         url_drivername = f"{config.get('dialect')}+{config.get('driver_type')}"
-        
+
         config_url = URL.create(
             url_drivername,
-            config.get('user'),
-            config.get('password'),
-            host=config.get('host'),
-            database=config.get('database')
+            config.get("user"),
+            config.get("password"),
+            host=config.get("host"),
+            database=config.get("database")
         )
 
-        if 'port' in config:
-            config_url = config_url.set(port=config.get('port'))
+        if "port" in config:
+            config_url = config_url.set(port=config.get("port"))
 
-        if 'sqlalchemy_url_query' in config:
+        if "sqlalchemy_url_query" in config:
             config_url = config_url.update_query_dict(
-                config.get('sqlalchemy_url_query')
+                config.get("sqlalchemy_url_query")
                 )
 
         return (config_url)
@@ -92,11 +108,11 @@ class mssqlConnector(SQLConnector):
             f"{eng_prefix}echo": "False",
             f"{eng_prefix}json_serializer": self.serialize_json,
             f"{eng_prefix}json_deserializer": self.deserialize_json,
-            
+
         }
 
-        if self.config.get('sqlalchemy_eng_params'):
-            for key, value in self.config['sqlalchemy_eng_params'].items():
+        if self.config.get("sqlalchemy_eng_params"):
+            for key, value in self.config["sqlalchemy_eng_params"].items():
                 eng_config.update({f"{eng_prefix}{key}": value})
 
         return engine_from_config(eng_config, prefix=eng_prefix)
@@ -117,11 +133,11 @@ class mssqlConnector(SQLConnector):
         Returns:
             The SQLAlchemy type representation of the data type.
         """
-        self.logger.info(f"json schema type: {jsonschema_type}")
-        if self.config.get('hd_jsonschema_types', False):
+        msg = f"json schema type: {jsonschema_type}"
+        self.logger.info(msg)
+        if self.config.get("hd_jsonschema_types", False):
             return self.hd_to_sql_type(jsonschema_type)
-        else:
-            return self.org_to_sql_type(jsonschema_type)
+        return self.org_to_sql_type(jsonschema_type)
 
     @staticmethod
     def org_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
@@ -140,8 +156,7 @@ class mssqlConnector(SQLConnector):
         Returns:
             The SQLAlchemy type representation of the data type.
         """
-
-        if 'boolean' in jsonschema_type.get('type'):
+        if "boolean" in jsonschema_type.get("type"):
             return t.cast(types.TypeEngine, mssql.VARCHAR(length=5))
 
         return SQLConnector.to_sql_type(jsonschema_type)
@@ -165,7 +180,7 @@ class mssqlConnector(SQLConnector):
         """
         # Send date, time, and date-time to specific MSSQL type
         # Strings to NVARCHAR and add maxLength
-        if 'string' in jsonschema_type.get('type'):
+        if "string" in jsonschema_type.get("type"):
             if jsonschema_type.get("format") == "date":
                 return t.cast(sa.types.TypeEngine, mssql.DATE())
             if jsonschema_type.get("format") == "time":
@@ -176,70 +191,65 @@ class mssqlConnector(SQLConnector):
                 return t.cast(sa.types.TypeEngine, mssql.UNIQUEIDENTIFIER())
             if jsonschema_type.get("contentMediaType") == "application/xml":
                 return t.cast(sa.types.TypeEngine, mssql.XML())
-            length: int = jsonschema_type.get('maxLength')
+            length: int = jsonschema_type.get("maxLength")
             if jsonschema_type.get("contentEncoding") == "base64":
                 if length:
                     return t.cast(sa.types.TypeEngine, mssql.VARBINARY(length=length))
-                else:
-                    return t.cast(sa.types.TypeEngine, mssql.VARBINARY())
+                return t.cast(sa.types.TypeEngine, mssql.VARBINARY())
             if length:
                 return t.cast(sa.types.TypeEngine, mssql.NVARCHAR(length=length))
-            else:
-                return t.cast(sa.types.TypeEngine, mssql.NVARCHAR())
+            return t.cast(sa.types.TypeEngine, mssql.NVARCHAR())
 
         # This is a MSSQL only DataType
         # SQLA does the converion Python True, False
         # to MS SQL Server BIT 0, 1
-        if 'boolean' in jsonschema_type.get('type'):
+        if "boolean" in jsonschema_type.get("type"):
             return t.cast(types.TypeEngine, mssql.BIT)
 
         # MS SQL Server Intergers and ANSI SQL Integers
-        if 'integer' in jsonschema_type.get('type'):
-            minimum: float = jsonschema_type.get('minimum')
-            maximum: float = jsonschema_type.get('maximum')
-            if (minimum == -9223372036854775808) and (maximum == 9223372036854775807):
+        if "integer" in jsonschema_type.get("type"):
+            minimum: float = jsonschema_type.get("minimum")
+            maximum: float = jsonschema_type.get("maximum")
+            if (minimum == MSSQL_BIGINT_MIN) and (maximum == MSSQL_BIGINT_MAX):
                 return t.cast(sa.types.TypeEngine, mssql.BIGINT())
-            elif (minimum == -2147483648) and (maximum == 2147483647):
+            if (minimum == MSSQL_INT_MIN) and (maximum == MSSQL_INT_MAX):
                 return t.cast(sa.types.TypeEngine, mssql.INTEGER())
-            elif (minimum == -32768) and (maximum == 32767):
+            if (minimum == MSSQL_SMALLINT_MIN) and (maximum == MSSQL_SMALLINT_MAX):
                 return t.cast(sa.types.TypeEngine, mssql.SMALLINT())
-            elif (minimum == 0) and (maximum == 255):
+            if (minimum == MSSQL_TINYINT_MIN) and (maximum == MSSQL_TINYINT_MAX):
                 # This is a MSSQL only DataType
                 return t.cast(sa.types.TypeEngine, mssql.TINYINT())
-            else:
-                precision = str(maximum).count('9')
-                return t.cast(sa.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=0))
+            precision = str(maximum).count("9")
+            return t.cast(sa.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=0))
 
         # MS SQL Server monetary, currency, float, and real values
-        if 'number' in jsonschema_type.get('type'):
-            minimum = jsonschema_type.get('minimum')
-            maximum = jsonschema_type.get('maximum')
+        if "number" in jsonschema_type.get("type"):
+            minimum = jsonschema_type.get("minimum")
+            maximum = jsonschema_type.get("maximum")
             # There is something that is traucating and rounding this number
             # if (minimum == -922337203685477.5808) and (maximum == 922337203685477.5807):
-            if (minimum == Decimal('-922337203685477.6')) and (maximum == Decimal('922337203685477.6')):
+            if (minimum == MSSQL_MONEY_MIN) and (maximum == MSSQL_MONEY_MAX):
                 return t.cast(sa.types.TypeEngine, mssql.MONEY())
-            elif (minimum == Decimal('-214748.3648')) and (maximum == Decimal('214748.3647')):
+            if (minimum == MSSQL_SMALLMONEY_MIN) and (maximum == MSSQL_SMALLMONEY_MAX):
                 return t.cast(sa.types.TypeEngine, mssql.SMALLMONEY())
-            elif (minimum == Decimal('-1.79e308')) and (maximum == Decimal('1.79e308')):
+            if (minimum == MSSQL_FLOAT_MIN) and (maximum == MSSQL_FLOAT_MIN):
                 return t.cast(sa.types.TypeEngine, mssql.FLOAT())
-            elif (minimum == Decimal('-3.40e38')) and (maximum == Decimal('3.40e38')):
+            if (minimum == MSSQL_REAL_MIN) and (maximum == MSSQL_REAL_MAX):
                 return t.cast(sa.types.TypeEngine, mssql.REAL())
-            else:
-                # Python will start using scientific notition for float values.
-                # A check for 'e+' in the string of the value is what I key off.
-                # If it is no present we can count the number of '9' in the string.
-                # If it is present we need to do a little more parsing to translate.
-                if 'e+' not in str(maximum).lower():
-                    precision = str(maximum).count('9')
-                    scale = precision - str(maximum).rfind('.')
-                    return t.cast(sa.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
-                else:
-                    precision_start = str(maximum).rfind('+')
-                    precision = int(str(maximum)[precision_start:])
-                    scale_start = str(maximum).find('.') + 1
-                    scale_end = str(maximum).lower().find('e')
-                    scale = scale_end - scale_start
-                    return t.cast(sa.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
+            # Python will start using scientific notition for float values.
+            # A check for "e+" in the string of the value is what I key off.
+            # If it is no present we can count the number of "9" in the string.
+            # If it is present we need to do a little more parsing to translate.
+            if "e+" not in str(maximum).lower():
+                precision = str(maximum).count("9")
+                scale = precision - str(maximum).rfind(".")
+                return t.cast(sa.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
+            precision_start = str(maximum).rfind("+")
+            precision = int(str(maximum)[precision_start:])
+            scale_start = str(maximum).find(".") + 1
+            scale_end = str(maximum).lower().find("e")
+            scale = scale_end - scale_start
+            return t.cast(sa.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
 
         return SQLConnector.to_sql_type(jsonschema_type)
 
@@ -263,16 +273,14 @@ class mssqlConnector(SQLConnector):
         ):
             sql_type_name = sql_type.__name__
         else:
-            raise ValueError(
-                "Expected `str` or a SQLAlchemy `TypeEngine` object or type."
-             )
+            msg = "Expected `str` or a SQLAlchemy `TypeEngine` object or type."
+            raise ValueError(msg)  # noqa: TRY004
 
-        if sql_type_name in ['CHAR', 'NCHAR', 'VARCHAR', 'NVARCHAR']:
-            maxLength: int = getattr(sql_type, 'length')
-            if maxLength and maxLength <= 450:
+        if sql_type_name in ["CHAR", "NCHAR", "VARCHAR", "NVARCHAR"]:
+            if sql_type.length and sql_type.length <= MSSQL_PK_CHAR_MAX:
                 pass
             else:
-                setattr(sql_type, 'length', 450)
+                sql_type.length = MSSQL_PK_CHAR_MAX
 
         return sql_type
 
@@ -348,7 +356,8 @@ class mssqlConnector(SQLConnector):
             NotImplementedError: if adding columns is not supported.
         """
         if not self.allow_column_add:
-            raise NotImplementedError("Adding columns is not supported.")
+            msg = "Adding columns is not supported."
+            raise NotImplementedError(msg)
 
         column_add_ddl = self.get_column_add_ddl(
             table_name=full_table_name,
@@ -374,7 +383,8 @@ class mssqlConnector(SQLConnector):
             NotImplementedError: If `self.allow_column_rename` is false.
         """
         if not self.allow_column_rename:
-            raise NotImplementedError("Renaming columns is not supported.")
+            msg = "Renaming columns is not supported."
+            raise NotImplementedError(msg)
 
         column_rename_ddl = self.get_column_rename_ddl(
             table_name=full_table_name, column_name=old_name, new_column_name=new_name
@@ -382,7 +392,7 @@ class mssqlConnector(SQLConnector):
         self.raw_conn_execute(str(column_rename_ddl))
 
     def raw_conn_execute(self, sql_command: str) -> None:
-        """Run direct SQL commands via SQLA raw connection
+        """Run direct SQL commands via SQLA raw connection.
 
         Args:
             sql_command: The SQL you want to run
@@ -461,15 +471,15 @@ class mssqlConnector(SQLConnector):
         )
 
 
-class mssqlSink(SQLSink):
+class MSSQLSink(SQLSink):
     """mssql target sink class."""
 
-    connector_class = mssqlConnector
+    connector_class = MSSQLConnector
 
     _target_table: Table = None
 
     @property
-    def schema_name(self) -> t.Optional[str]:
+    def schema_name(self) -> str | None:
         """Return the schema name or `None` if using names with no schema part.
 
         Returns:
@@ -480,17 +490,21 @@ class mssqlSink(SQLSink):
         # MS SQL Server has a public database role so the name is reserved
         # and it can not be created as a schema.  To avoid this common error
         # we convert "public" to "dbo" if the target dialet is mssql
-        # if self.connector._dialect.name == "mssql" and stream_schema == "public":
         if stream_schema == "public":
             stream_schema = "dbo"
 
         return stream_schema
 
     @property
-    def target_table(self):
+    def target_table(self) -> Table:
+        """Return the targeted table or `None` if not assigned yet.
+
+        Returns:
+            The target table object.
+        """
         return self._target_table
-    
-    def conform_name(self, name: str, object_type: t.Optional[str] = None) -> str:
+
+    def conform_name(self, name: str, object_type: str| None = None) -> str:
         """Conform a stream property name to one suitable for the target system.
 
         Transforms names to snake case by default, applicable to most common DBMSs'.
@@ -525,19 +539,20 @@ class mssqlSink(SQLSink):
             A new, processed record.
         """
         # Get the Stream Properties Dictornary from the Schema
-        properties: dict = self.schema.get('properties')
+        properties: dict = self.schema.get("properties")
 
         for key, value in record.items():
             if value is not None:
                 # Get the Item/Column property
                 property_schema: dict = properties.get(key)
                 # Decode base64 binary fields in record
-                if property_schema.get('contentEncoding') == 'base64':
+                if property_schema.get("contentEncoding") == "base64":
                     record.update({key: b64decode(value)})
 
         return record
 
-    def set_target_table(self, full_table_name: str):
+    def set_target_table(self, full_table_name: str) -> None:
+        """Populates the property _target_table."""
         # We need to grab the schema_name and table_name
         # for the Table class instance
         _, schema_name, table_name = SQLConnector.parse_full_table_name(self, full_table_name=full_table_name)
@@ -556,8 +571,8 @@ class mssqlSink(SQLSink):
         self,
         full_table_name: str,
         schema: dict,
-        records: t.Iterable[t.Dict[str, t.Any]],
-    ) -> t.Optional[int]:
+        records: t.Iterable[dict[str, t.Any]],
+    ) -> int | None:
         """Bulk insert records to an existing destination table.
 
         The default implementation uses a generic SQLAlchemy bulk insert operation.
@@ -590,7 +605,7 @@ class mssqlSink(SQLSink):
                 result:sa.CursorResult = conn.execute(self.target_table.insert(), conformed_records)
             rowcount = result.rowcount
         except exc.SQLAlchemyError as e:
-            error = str(e.__dict__['orig'])
+            error = str(e.__dict__["orig"])
             self.logger.info(error)
 
         return rowcount
