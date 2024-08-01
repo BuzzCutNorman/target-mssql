@@ -33,6 +33,11 @@ singer-sdk = { version="~=0.39.0", extras = ["testing"] }
 [tool.poetry.extras]
 s3 = ["fs-s3fs"]
 
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+plugins = "sqlmypy"
+
 [tool.ruff]
 src = ["target_mssql"]
 target-version = "py38"
