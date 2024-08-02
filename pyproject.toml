@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "target-mssql"
-version = "0.0.3"
+version = "0.0.4"
 description = "`target-mssql` is a Singer target for mssql, built with the Meltano Singer SDK."
 readme = "README.md"
 authors = ["Dan Norman <buzzcutnorman@gmail.com>"]
