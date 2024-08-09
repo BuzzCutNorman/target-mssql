@@ -15,6 +15,8 @@ from sqlalchemy import DDL, MetaData, Table, engine_from_config, exc, types
 from sqlalchemy.dialects import mssql
 from sqlalchemy.engine import URL, Engine
 
+from .json import deserialize_json, serialize_json
+
 MSSQL_PK_CHAR_MAX: int = 450
 MSSQL_BIGINT_MIN: int = -9223372036854775808
 MSSQL_BIGINT_MAX: int = 9223372036854775807
@@ -56,6 +58,9 @@ class MSSQLConnector(SQLConnector):
         # This allows SQLA to manage to connection pool
         if config["driver_type"] == "pyodbc":
             pyodbc.pooling = False
+
+        self.deserialize_json = deserialize_json
+        self.serialize_json = serialize_json
 
         super().__init__(config, sqlalchemy_url)
 
