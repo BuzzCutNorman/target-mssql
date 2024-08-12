@@ -6,10 +6,17 @@ import typing as t
 from base64 import b64decode
 from contextlib import contextmanager
 from decimal import Decimal
+from gzip import GzipFile
+from gzip import open as gzip_open
 
 import pyodbc
 import sqlalchemy as sa
 from singer_sdk.connectors import SQLConnector
+from singer_sdk.helpers._batch import (
+    BaseBatchFileEncoding,
+    BatchFileFormat,
+    StorageTarget,
+)
 from singer_sdk.sinks import SQLSink
 from sqlalchemy import DDL, MetaData, Table, engine_from_config, exc, types
 from sqlalchemy.dialects import mssql
@@ -555,6 +562,47 @@ class MSSQLSink(SQLSink):
                     record.update({key: b64decode(value)})
 
         return record
+
+    def process_batch_files(
+        self,
+        encoding: BaseBatchFileEncoding,
+        files: t.Sequence[str],
+    ) -> None:
+        """Process a batch file with the given batch context.
+
+        Args:
+            encoding: The batch file encoding.
+            files: The batch files to process.
+
+        Raises:
+            NotImplementedError: If the batch file encoding is not supported.
+        """
+        file: GzipFile | t.IO
+        storage: StorageTarget | None = None
+
+        for path in files:
+            head, tail = StorageTarget.split_url(path)
+
+            if self.batch_config:
+                storage = self.batch_config.storage
+            else:
+                storage = StorageTarget.from_url(head)
+
+            if encoding.format == BatchFileFormat.JSONL:
+                with storage.fs(create=False) as batch_fs, batch_fs.open(
+                    tail,
+                    mode="rb",
+                ) as file:
+                    context_file = (
+                        gzip_open(file) if encoding.compression == "gzip" else file
+                    )
+                    context = {
+                        "records": [self.preprocess_record(deserialize_json(line),{}) for line in context_file]  # type: ignore[attr-defined]
+                    }
+                    self.process_batch(context)
+            else:
+                msg = f"Unsupported batch encoding format: {encoding.format}"
+                raise NotImplementedError(msg)
 
     def set_target_table(self, full_table_name: str) -> None:
         """Populates the property _target_table."""
