@@ -579,8 +579,8 @@ class MSSQLSink(SQLSink):
         )
         return record
 
-    async def cleanup_batch_files(self, file_path: Path) -> None:
-        """ASYNC function to cleanup batch files after ingestion.
+    async def cleanup_batch_file(self, file_path: Path) -> None:
+        """ASYNC function to cleanup a batch file after ingestion.
 
         Args:
             file_path: The Path object to the file.
@@ -630,7 +630,7 @@ class MSSQLSink(SQLSink):
                 raise NotImplementedError(msg)
 
             # Delete Files Once injested.
-            asyncio.run(self.cleanup_batch_files(file_path=file_path))
+            asyncio.run(self.cleanup_batch_file(file_path=file_path))
 
     def set_target_table(self, full_table_name: str) -> None:
         """Populates the property _target_table."""
