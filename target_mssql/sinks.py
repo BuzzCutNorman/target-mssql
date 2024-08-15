@@ -20,9 +20,8 @@ from singer_sdk.helpers._batch import (
     StorageTarget,
 )
 from singer_sdk.sinks import SQLSink
-from sqlalchemy import DDL, MetaData, Table, engine_from_config, exc, types
+from sqlalchemy import exc
 from sqlalchemy.dialects import mssql
-from sqlalchemy.engine import URL, Engine
 
 from .json import deserialize_json, serialize_json
 
@@ -43,6 +42,7 @@ MSSQL_FLOAT_MIN:Decimal = Decimal("-1.79e308")
 MSSQL_FLOAT_MAX:Decimal = Decimal("1.79e308")
 MSSQL_REAL_MIN:Decimal = Decimal("-3.40e38")
 MSSQL_REAL_MAX:Decimal = Decimal("3.40e38")
+
 
 class MSSQLConnector(SQLConnector):
     """The connector for mssql.
@@ -89,7 +89,7 @@ class MSSQLConnector(SQLConnector):
         """
         url_drivername = f"{config.get('dialect')}+{config.get('driver_type')}"
 
-        config_url = URL.create(
+        config_url = sa.URL.create(
             url_drivername,
             config.get("user"),
             config.get("password"),
@@ -107,7 +107,7 @@ class MSSQLConnector(SQLConnector):
 
         return (config_url)
 
-    def create_engine(self) -> Engine:
+    def create_engine(self) -> sa.Engine:
         """Return a new SQLAlchemy engine using the provided config.
 
         Developers can generally override just one of the following:
@@ -120,6 +120,7 @@ class MSSQLConnector(SQLConnector):
         eng_config = {
             f"{eng_prefix}url": self.sqlalchemy_url,
             f"{eng_prefix}echo": "False",
+            f"{eng_prefix}pool_pre_ping": "True",
             f"{eng_prefix}json_serializer": self.serialize_json,
             f"{eng_prefix}json_deserializer": self.deserialize_json,
 
@@ -129,7 +130,7 @@ class MSSQLConnector(SQLConnector):
             for key, value in self.config["sqlalchemy_eng_params"].items():
                 eng_config.update({f"{eng_prefix}{key}": value})
 
-        return engine_from_config(eng_config, prefix=eng_prefix)
+        return sa.engine_from_config(eng_config, prefix=eng_prefix)
 
     def to_sql_type(self, jsonschema_type: dict) -> None:
         """Returns a JSON Schema equivalent for the given SQL type.
@@ -154,7 +155,7 @@ class MSSQLConnector(SQLConnector):
         return self.org_to_sql_type(jsonschema_type)
 
     @staticmethod
-    def org_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
+    def org_to_sql_type(jsonschema_type: dict) -> sa.types.TypeEngine:
         """Returns a JSON Schema equivalent for the given SQL type.
 
         By default will call `typing.to_sql_type()`.
@@ -171,16 +172,12 @@ class MSSQLConnector(SQLConnector):
             The SQLAlchemy type representation of the data type.
         """
         if "boolean" in jsonschema_type.get("type"):
-            return t.cast(types.TypeEngine, mssql.VARCHAR(length=5))
-
-
-        # if "string" in jsonschema_type.get("type") and jsonschema_type.get("format") == "date-time":
-        #     return t.cast(sa.types.TypeEngine, mssql.DATETIME2())
+            return t.cast(sa.types.TypeEngine, mssql.VARCHAR(length=5))
 
         return SQLConnector.to_sql_type(jsonschema_type)
 
     @staticmethod
-    def hd_to_sql_type(jsonschema_type: dict) -> types.TypeEngine:
+    def hd_to_sql_type(jsonschema_type: dict) -> sa.types.TypeEngine:
         """Returns a JSON Schema equivalent for the given SQL type.
 
         By default will call `typing.to_sql_type()`.
@@ -222,7 +219,7 @@ class MSSQLConnector(SQLConnector):
         # SQLA does the converion Python True, False
         # to MS SQL Server BIT 0, 1
         if "boolean" in jsonschema_type.get("type"):
-            return t.cast(types.TypeEngine, mssql.BIT)
+            return t.cast(sa.types.TypeEngine, mssql.BIT)
 
         # MS SQL Server Intergers and ANSI SQL Integers
         if "integer" in jsonschema_type.get("type"):
@@ -271,7 +268,7 @@ class MSSQLConnector(SQLConnector):
 
         return SQLConnector.to_sql_type(jsonschema_type)
 
-    def to_sql_pk_type(self, jsonschema_type: dict) -> types.TypeEngine:
+    def to_sql_pk_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:
         """Returns a SQL equivalent safe for a primary key for the given JSON Schema type.
 
         Args:
@@ -280,7 +277,7 @@ class MSSQLConnector(SQLConnector):
         Returns:
             The SQLAlchemy type representation of the data type.
         """
-        sql_type: types.TypeEngine = self.to_sql_type(jsonschema_type)
+        sql_type: sa.types.TypeEngine = self.to_sql_type(jsonschema_type)
 
         if isinstance(sql_type, str):
             sql_type_name = sql_type
@@ -306,7 +303,7 @@ class MSSQLConnector(SQLConnector):
         self,
         full_table_name: str,
         schema: dict,
-        primary_keys: list[str] | None = None,
+        primary_keys: t.Sequence[str] | None = None,
         partition_keys: list[str] | None = None,
         as_temp_table: bool = False,  # noqa: FBT001, FBT002
     ) -> None:
@@ -405,7 +402,9 @@ class MSSQLConnector(SQLConnector):
             raise NotImplementedError(msg)
 
         column_rename_ddl = self.get_column_rename_ddl(
-            table_name=full_table_name, column_name=old_name, new_column_name=new_name
+            table_name=full_table_name,
+            column_name=old_name,
+            new_column_name=new_name
         )
         self.raw_conn_execute(str(column_rename_ddl))
 
@@ -417,7 +416,7 @@ class MSSQLConnector(SQLConnector):
 
         """
         self.logger.info(sql_command)
-        raw_conn = self.connection.engine.raw_connection()
+        raw_conn = self._engine.raw_connection()
         try:
             cursor = raw_conn.cursor()
             cursor.execute(sql_command)
@@ -430,8 +429,10 @@ class MSSQLConnector(SQLConnector):
 
     @staticmethod
     def get_column_rename_ddl(
-        table_name: str, column_name: str, new_column_name: str
-    ) -> DDL:
+        table_name: str,
+        column_name: str,
+        new_column_name: str
+    ) -> sa.DDL:
         """Get the create column DDL statement.
 
         Override this if your database uses
@@ -449,7 +450,7 @@ class MSSQLConnector(SQLConnector):
         new_column_name = f"'{new_column_name}'"
         object_type: str = "'COLUMN'"
 
-        return DDL(
+        return sa.DDL(
             "EXEC sp_rename %(full_column_name)s, %(new_column_name)s, %(object_type)s",
             {
                 "full_column_name": full_column_name,
@@ -458,10 +459,12 @@ class MSSQLConnector(SQLConnector):
             },
         )
 
-    @staticmethod
     def get_column_add_ddl(
-        table_name: str, column_name: str, column_type: types.TypeEngine
-    ) -> DDL:
+        self,
+        table_name: str,
+        column_name: str,
+        column_type: sa.types.TypeEngine
+    ) -> sa.DDL:
         """Get the create column DDL statement.
 
         Override this if your database uses a different syntax for creating columns.
@@ -480,11 +483,12 @@ class MSSQLConnector(SQLConnector):
                 column_type,
             )
         )
+        compiled = create_column_clause.compile(self._engine).string
         return sa.DDL(
             "ALTER TABLE %(table_name)s ADD %(create_column_clause)s",
             {
                 "table_name": table_name,
-                "create_column_clause": create_column_clause,
+                "create_column_clause": compiled,
             },
         )
 
@@ -494,7 +498,8 @@ class MSSQLSink(SQLSink):
 
     connector_class = MSSQLConnector
 
-    _target_table: Table = None
+    _target_table: sa.Table = None
+    _insert_statement: sa.Insert = None
 
     @property
     def schema_name(self) -> str | None:
@@ -514,7 +519,7 @@ class MSSQLSink(SQLSink):
         return stream_schema
 
     @property
-    def target_table(self) -> Table:
+    def target_table(self) -> sa.Table:
         """Return the targeted table or `None` if not assigned yet.
 
         Returns:
@@ -522,7 +527,11 @@ class MSSQLSink(SQLSink):
         """
         return self._target_table
 
-    def conform_name(self, name: str, object_type: str| None = None) -> str:
+    def conform_name(
+        self,
+        name: str,
+        object_type: str| None = None,
+    ) -> str:
         """Conform a stream property name to one suitable for the target system.
 
         Transforms names to snake case by default, applicable to most common DBMSs'.
@@ -569,7 +578,7 @@ class MSSQLSink(SQLSink):
 
         return record
 
-    def process_batch_line(self, line) -> dict:
+    def process_batch_line(self, line: bytes | str) -> dict:
         """Process a batch file record."""
         record = self.preprocess_record(deserialize_json(line),{})
         self._parse_timestamps_in_record(
@@ -640,11 +649,11 @@ class MSSQLSink(SQLSink):
 
         # You also need a blank MetaData instance
         # for the Table class instance
-        meta = MetaData()
+        meta = sa.MetaData()
 
         # This is the Table instance that will autoload
         # all the info about the table from the target server
-        table: Table = Table(table_name, meta, autoload_with=self.connector._engine, schema=schema_name)
+        table: sa.Table = sa.Table(table_name, meta, autoload_with=self.connector._engine, schema=schema_name)
 
         self._target_table = table
 
@@ -672,18 +681,19 @@ class MSSQLSink(SQLSink):
         if self.target_table is None:
             self.set_target_table(full_table_name)
 
-        conformed_records = (
-            [self.conform_record(record) for record in records]
-            if isinstance(records, list)
-            else (self.conform_record(record) for record in records)
-        )
+        if self._insert_statement is None:
+            self._insert_statement = self.target_table.insert()
+
+        conformed_records = [self.conform_record(record) for record in records]
 
         # This is a insert based off SQLA example
         # https://docs.sqlalchemy.org/en/20/dialects/mssql.html#insert-behavior
         rowcount: int = 0
         try:
             with self.connector._connect() as conn, conn.begin():  # noqa: SLF001
-                result:sa.CursorResult = conn.execute(self.target_table.insert(), conformed_records)
+                result:sa.CursorResult = conn.execute(
+                    self._insert_statement,
+                    conformed_records)
             rowcount = result.rowcount
         except exc.SQLAlchemyError as e:
             error = str(e.__dict__["orig"])
