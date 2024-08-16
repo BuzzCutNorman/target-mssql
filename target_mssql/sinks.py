@@ -57,6 +57,9 @@ class MSSQLConnector(SQLConnector):
     allow_overwrite: bool = True  # Whether overwrite load method is supported.
     allow_temp_tables: bool = True  # Whether temp tables are supported.
 
+    _target_schemas: set[str] | None = None
+    """This holds the Target's schema names in lower case."""
+
     def __init__(
             self,
             config: dict | None = None,
@@ -298,6 +301,50 @@ class MSSQLConnector(SQLConnector):
                 sql_type.length = MSSQL_PK_CHAR_MAX
 
         return sql_type
+
+    def schema_exists(self, schema_name: str) -> bool:
+        """Determine if the target database schema already exists.
+
+        This has been overriden since MS SQL Server does not care about case
+        SQLAlchemy .get_schema_names returns the schema names with the case
+        present in SQL Server so say "HumanResources". If you get a stream
+        with a translated schema of 'humanresources" the orginal code would
+        say the schema was not present and returned False. The target then
+        tries to add the schema. SQL Server then will error saying:
+
+        There is already an object named 'humanresources' in the database.
+
+        This lead to converting all the schema names to lower case and
+        then evaltuating to see if the name was present.
+
+        Args:
+            schema_name: The target database schema name.
+
+        Returns:
+            True if the database schema exists, False if not.
+        """
+        if self._target_schemas is None:
+            self.set_target_schemas()
+
+        return schema_name.lower() in self._target_schemas
+
+    def set_target_schemas(self) -> None:
+        """Populate the Connectors list of the Target's existing schema."""
+        self._target_schemas = {str(schema_name).lower() for schema_name in sa.inspect(self._engine).get_schema_names()}
+
+    def create_schema(self, schema_name: str) -> None:
+        """Create target schema.
+
+        Override to populate added schemas so I don't have to
+        Inspect the database again.
+
+        Args:
+            schema_name: The target schema to create.
+        """
+        with self._connect() as conn, conn.begin():
+            conn.execute(sa.schema.CreateSchema(schema_name))
+
+        self._target_schemas.add(schema_name.lower())
 
     def create_empty_table(
         self,
@@ -574,7 +621,7 @@ class MSSQLSink(SQLSink):
                 property_schema: dict = properties.get(key)
                 # Decode base64 binary fields in record
                 if property_schema.get("contentEncoding") == "base64":
-                    record.update({key: b64decode(value)})
+                    record[key] = b64decode(value)
 
         return record
 
