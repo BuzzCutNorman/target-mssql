@@ -58,3 +58,19 @@ def serialize_json(obj: object, **kwargs: t.Any) -> str:
         A string of serialized json.
     """
     return encoder.encode(obj).decode()
+
+msg_buffer = bytearray(64)
+
+def serialize_jsonl(obj: object, **kwargs: t.Any) -> bytes:
+        """Serialize a dictionary into a line of jsonl.
+
+        Args:
+            obj: A Python object usually a dict.
+            **kwargs: Optional key word arguments.
+
+        Returns:
+            A bytes of serialized json.
+        """
+        encoder.encode_into(obj, msg_buffer)
+        msg_buffer.extend(b"\n")
+        return msg_buffer
