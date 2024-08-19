@@ -1,9 +1,13 @@
 # target-mssql
 
-`target-mssql` is a Singer target for mssql. !!! Warning !!! really early version.  It works ok 😐.  This target can accept Meltano Batch Messages. It fails loading streams that contain datetime 😵😢. So yah sorry about that! I will be doing a two fingered clap and putting on my thinking cap about that one 🤔.  Not doing native bcp loads yet.
+`target-mssql` is a Singer target for mssql. !!! Warning !!! really early version.  It works ok 😐.  Not doing native bcp loads yet.
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
 ### Whats New 🛳️🎉
+**2024-08-20 msgspec and more:**  I have been working on getting a quicker JSON decoder in place for a while and thanks to Edger at Arch I am able too.  The library I switched to is [msgspec]( https://jcristharif.com/msgspec/). It is lightweight and fast.  Big Thank You 🙏 to Jim Crist-Harif for writing and maintaining `msgspec`. I also removed `pedulum` and am using phython datetime at the moment. I enabled `overwrite` `load_method`.  Considered yourself warned that, There be monsters 🧌 of ye own making using the overwrite method. 😁 
+
+Last but not least all batch message records are pre-processed and datetimes parsed just like orginal non-batch loads.  This resolves that long standing issue which stoped this target from accepting batch messages.  I can finally take off my thinking cap and go back to regular claping.  If you understand that reference you have been here a while and Thanks for the support.
+
 **2024-08-01 Upgraded to Meltano Singer-SDK 0.39.0**
 
 **2024-07-15 Upgraded to Meltano Singer-SDK 0.36.1**
