@@ -2,6 +2,7 @@
 name = "target-mssql"
 version = "0.1.0"
 description = "`target-mssql` is a Singer target for mssql, built with the Meltano Singer SDK."
+readme = "README.md"
 authors = [{ name = "Dan Norman", email = "buzzcutnorman@gmail.com" }]
 keywords = [
     "ELT",
@@ -9,6 +10,7 @@ keywords = [
 ]
 classifiers = [
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -16,9 +18,9 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">=3.9"
-readme = "README.md"
 license = "MIT"
+license-files = [ "LICENSE.md" ]
+requires-python = ">=3.9"
 dependencies = [
     "singer-sdk[msgspec]~=0.46.4",
     "pyodbc>=5.2.0,<6",
@@ -49,7 +51,7 @@ plugins = "sqlmypy"
 
 [tool.ruff]
 src = ["target_mssql"]
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.lint]
 ignore = [
@@ -62,9 +64,6 @@ select = ["ALL"]
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true
-
-[tool.ruff.lint.isort]
-known-first-party = ["target_mssql"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
