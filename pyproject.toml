@@ -1,9 +1,8 @@
-[tool.poetry]
+[project]
 name = "target-mssql"
 version = "0.1.0"
 description = "`target-mssql` is a Singer target for mssql, built with the Meltano Singer SDK."
-readme = "README.md"
-authors = ["Dan Norman <buzzcutnorman@gmail.com>"]
+authors = [{ name = "Dan Norman", email = "buzzcutnorman@gmail.com" }]
 keywords = [
     "ELT",
     "mssql",
@@ -17,22 +16,30 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
+requires-python = ">=3.8"
+readme = "README.md"
 license = "MIT"
+dependencies = [
+    "singer-sdk~=0.39.0",
+    "pyodbc>=5.1.0,<6",
+    "pymssql>=2.3.0,<3",
+    "msgspec>=0.18.6,<0.19",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.8"
-singer-sdk = { version="~=0.39.0" }
-fs-s3fs = { version = "^1.1.1", optional = true}
-pyodbc = "^5.1.0"
-pymssql = "^2.3.0"
-msgspec = "^0.18.6"
+[project.optional-dependencies]
+s3 = ["fs-s3fs>=1.1.1,<2"]
 
-[tool.poetry.dev-dependencies]
-pytest = ">=8"
-singer-sdk = { version="~=0.39.0", extras = ["testing"] }
+[project.scripts]
+target-mssql = "target_mssql.target:Targetmssql.cli"
 
-[tool.poetry.extras]
-s3 = ["fs-s3fs"]
+[dependency-groups]
+dev = [
+    { include-group = "test" },
+]
+test = [
+    "pytest>=8",
+    "singer-sdk[testing]",
+]
 
 [tool.mypy]
 python_version = "3.12"
@@ -62,9 +69,7 @@ known-first-party = ["target_mssql"]
 convention = "google"
 
 [build-system]
-requires = ["poetry-core==1.9.0"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.scripts]
-# CLI declaration
-target-mssql = 'target_mssql.target:Targetmssql.cli'
+requires = [
+    "hatchling>=1,<2",
+]
+build-backend = "hatchling.build"
