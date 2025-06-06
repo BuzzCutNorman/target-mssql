@@ -23,8 +23,6 @@ from singer_sdk.sinks import SQLSink
 from sqlalchemy import exc
 from sqlalchemy.dialects import mssql
 
-from .json import deserialize_json, serialize_json
-
 MSSQL_PK_CHAR_MAX: int = 450
 MSSQL_BIGINT_MIN: int = -9223372036854775808
 MSSQL_BIGINT_MAX: int = 9223372036854775807
@@ -70,9 +68,6 @@ class MSSQLConnector(SQLConnector):
         # This allows SQLA to manage to connection pool
         if config["driver_type"] == "pyodbc":
             pyodbc.pooling = False
-
-        self.deserialize_json = deserialize_json
-        self.serialize_json = serialize_json
 
         super().__init__(config, sqlalchemy_url)
 
@@ -157,8 +152,7 @@ class MSSQLConnector(SQLConnector):
             return self.hd_to_sql_type(jsonschema_type)
         return self.org_to_sql_type(jsonschema_type)
 
-    @staticmethod
-    def org_to_sql_type(jsonschema_type: dict) -> sa.types.TypeEngine:
+    def org_to_sql_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:
         """Returns a JSON Schema equivalent for the given SQL type.
 
         By default will call `typing.to_sql_type()`.
@@ -177,10 +171,9 @@ class MSSQLConnector(SQLConnector):
         if "boolean" in jsonschema_type.get("type"):
             return t.cast(sa.types.TypeEngine, mssql.VARCHAR(length=5))
 
-        return SQLConnector.to_sql_type(jsonschema_type)
+        return SQLConnector.to_sql_type(self=self,jsonschema_type=jsonschema_type)
 
-    @staticmethod
-    def hd_to_sql_type(jsonschema_type: dict) -> sa.types.TypeEngine:
+    def hd_to_sql_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:
         """Returns a JSON Schema equivalent for the given SQL type.
 
         By default will call `typing.to_sql_type()`.
@@ -269,7 +262,7 @@ class MSSQLConnector(SQLConnector):
             scale = scale_end - scale_start
             return t.cast(sa.types.TypeEngine, mssql.DECIMAL(precision=precision, scale=scale))
 
-        return SQLConnector.to_sql_type(jsonschema_type)
+        return SQLConnector.to_sql_type(self=self,jsonschema_type=jsonschema_type)
 
     def to_sql_pk_type(self, jsonschema_type: dict) -> sa.types.TypeEngine:
         """Returns a SQL equivalent safe for a primary key for the given JSON Schema type.
@@ -625,15 +618,6 @@ class MSSQLSink(SQLSink):
 
         return record
 
-    def process_batch_line(self, line: bytes | str) -> dict:
-        """Process a batch file record."""
-        record = self.preprocess_record(deserialize_json(line),{})
-        self._parse_timestamps_in_record(
-            record=record,
-            schema=self.schema,
-            treatment=self.datetime_error_treatment,
-        )
-        return record
 
     async def cleanup_batch_file(self, file_path: Path) -> None:
         """ASYNC function to cleanup a batch file after ingestion.
