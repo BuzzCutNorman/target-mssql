@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+
 from singer_sdk import typing as th
 from singer_sdk.contrib.msgspec import MsgSpecReader
 from singer_sdk.target_base import SQLTarget
@@ -15,6 +17,7 @@ class Targetmssql(SQLTarget):
     name = "target-mssql"
     default_sink_class = MSSQLSink
     message_reader_class = MsgSpecReader
+    message_reader_class.default_input = sys.stdin.buffer
 
     config_jsonschema = th.PropertiesList(
         th.Property(
