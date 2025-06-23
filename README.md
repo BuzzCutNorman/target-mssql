@@ -4,6 +4,8 @@
 
 Built with the [Meltano Target SDK](https://sdk.meltano.com).
 ### Whats New 🛳️🎉
+**2024-06-23 Upgraded to Meltano Singer-SDK 0.46.4:** Edger at Arch implemented an MsgSpecReader class in the SDK.  I updated target-mssql to utilize the SDK's implementation of msgspec.  Thanks Edger 🙏.
+
 **2024-08-20 msgspec and more:**  I have been working on getting a quicker JSON decoder in place for a while and thanks to Edger at Arch I am able too.  The library I switched to is [msgspec]( https://jcristharif.com/msgspec/). It is lightweight and fast.  Big Thank You 🙏 to Jim Crist-Harif for writing and maintaining `msgspec`. I also removed `pedulum` and am using phython datetime at the moment. I enabled `overwrite` `load_method`.  Considered yourself warned that, There be monsters 🧌 of ye own making using the overwrite method. 😁 
 
 Last but not least all batch message records are pre-processed and datetimes parsed just like orginal non-batch loads.  This resolves that long standing issue which stoped this target from accepting batch messages.  I can finally take off my thinking cap and go back to regular claping.  If you understand that reference you have been here a while and Thanks for the support.
